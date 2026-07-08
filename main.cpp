@@ -57,6 +57,13 @@ void registerCustomer(UserDAO& userDAO);
 
 void login(UserDAO& userDAO);
 
+void adminPanel(User* currentUser);
+void adminAddUserMenu(UserDAO& userDAO);
+void adminDeleteUserMenu(UserDAO& userDAO);
+void adminAddRestaurantMenu(RestaurantDAO& restaurantDAO);
+void adminUpdateRestaurantMenu(RestaurantDAO& restaurantDAO);
+void adminDeleteRestaurantMenu(RestaurantDAO& restaurantDAO);
+
 int main() {
     DatabaseManager* db = DatabaseManager::getInstance();
     if (db == nullptr) {
@@ -374,4 +381,297 @@ void login(UserDAO& userDAO) {
     else cout << " Unknown role\n";
 
     delete currentUser;
+}
+
+void adminPanel(User* currentUser) {
+    UserDAO userDAO;
+    RestaurantDAO restaurantDAO;
+    OrderDAO orderDAO;
+
+    int choice;
+    do {
+        cout << "\n===== Admin Panel =====\n";
+        cout << " Welcome, " << currentUser->getName() << "\n";
+        cout << "1. Show All Users\n";
+        cout << "2. Show All Restaurants\n";
+        cout << "3. Add User\n";
+        cout << "4. Delete User\n";
+        cout << "5. Add Restaurant\n";
+        cout << "6. Update Restaurant\n";
+        cout << "7. Delete Restaurant\n";
+        cout << "8. Reports\n";
+        cout << "0. Logout\n";
+        cout << " Enter your choice: ";
+        choice = readInt();
+
+        switch (choice) {
+        case 1:
+            showAllUsers(userDAO);
+            pauseProgram();
+            break;
+
+        case 2:
+            showAllRestaurants(restaurantDAO);
+            pauseProgram();
+            break;
+
+        case 3: {
+            adminAddUserMenu(userDAO);
+    		break;
+        }
+
+        case 4: {
+            adminDeleteUserMenu(userDAO);
+    		break;
+        }
+
+        case 5: {
+            adminAddRestaurantMenu(restaurantDAO);
+    		break;
+        }
+
+        case 6: {
+            adminUpdateRestaurantMenu(restaurantDAO);
+    		break;
+        }
+
+        case 7: {
+            adminDeleteRestaurantMenu(restaurantDAO);
+    		break;
+        }
+
+        case 8:
+            showReports(userDAO, orderDAO);
+            break;
+
+        case 0:
+            cout << " Logging out...\n";
+            break;
+
+        default:
+            cout << " Invalid choice\n";
+            pauseProgram();
+            break;
+        }
+
+    } while (choice != 0);
+}
+
+void adminAddUserMenu(UserDAO& userDAO) {
+    int choice;
+
+    do {
+        cout << "\n===== Add User =====\n";
+        cout << "1. Add User\n";
+        cout << "0. Back\n";
+        choice = readPositiveInt(" Enter your choice: ");
+
+        switch (choice) {
+        case 1: {
+            string name = readNonEmptyString(" Enter name: ");
+            string username = readNonEmptyString(" Enter username: ");
+            string password = readNonEmptyString(" Enter password: ");
+            string role = readNonEmptyString(" Enter role (customer/manager/admin): ");
+
+            if (role != "customer" && role != "manager" && role != "admin") {
+                cout << " Invalid role\n";
+            } else if (userDAO.addUser(User(0, name, username, password, role))) {
+                cout << " User added successfully\n";
+            } else {
+                cout << " Failed to add user\n";
+            }
+
+            pauseProgram();
+            break;
+        }
+
+        case 0:
+            break;
+
+        default:
+            cout << " Invalid choice\n";
+            pauseProgram();
+        }
+    } while (choice != 0);
+}
+
+void adminDeleteUserMenu(UserDAO& userDAO) {
+    int choice;
+
+    do {
+        cout << "\n===== Delete User =====\n";
+        cout << "1. Show All Users\n";
+        cout << "2. Delete User\n";
+        cout << "0. Back\n";
+        cout << " Enter your choice: ";
+        choice = readInt();
+
+        switch (choice) {
+        case 1:
+            showAllUsers(userDAO);
+            pauseProgram();
+            break;
+
+        case 2: {
+            int id = readPositiveInt(" Enter user ID to delete: ");
+
+            if (userDAO.deleteUser(id))
+                cout << " User deleted successfully\n";
+            else
+                cout << " Failed to delete user (If the user is a manager, please delete the manager's restaurant first)\n";
+        }
+
+        case 0:
+            break;
+
+        default:
+            cout << " Invalid choice\n";
+            pauseProgram();
+        }
+    } while (choice != 0);
+}
+
+void adminAddRestaurantMenu(RestaurantDAO& restaurantDAO) {
+    int choice;
+
+    do {
+        cout << "\n===== Add Restaurant =====\n";
+        cout << "1. Add Restaurant\n";
+        cout << "0. Back\n";
+        cout << " Enter your choice: ";
+        choice = readInt();
+
+        switch (choice) {
+        case 1: {
+            string name = readNonEmptyString(" Enter restaurant name: ");
+            string address = readNonEmptyString(" Enter restaurant address: ");
+
+            int status = readZeroOne(" Enter status (1=active, 0=inactive): ");
+
+            int prepTime = readPositiveInt(" Enter prep time: ");
+
+            string contact = readNonEmptyString(" Enter contact: ");
+            string description = readNonEmptyString(" Enter description: ");
+
+            int managerId = readPositiveInt(" Enter manager ID: ");
+
+            Restaurant r(0, name, address, status, prepTime, contact, description, managerId);
+
+            if (restaurantDAO.addRestaurant(r))
+                cout << " Restaurant added successfully\n";
+            else
+                cout << " Failed to add restaurant\n";
+
+            pauseProgram();
+            break;
+        }
+
+        case 0:
+            break;
+
+        default:
+            cout << " Invalid choice\n";
+            pauseProgram();
+        }
+    } while (choice != 0);
+}
+
+void adminUpdateRestaurantMenu(RestaurantDAO& restaurantDAO) {
+    int choice;
+
+    do {
+        cout << "\n===== Update Restaurant =====\n";
+        cout << "1. Show All Restaurants\n";
+        cout << "2. Update Restaurant\n";
+        cout << "0. Back\n";
+        choice = readPositiveInt(" Enter your choice: ");
+
+        switch (choice) {
+        case 1:
+            showAllRestaurants(restaurantDAO);
+            pauseProgram();
+            break;
+
+        case 2: {
+            showAllRestaurants(restaurantDAO);
+
+            int id = readPositiveInt(" Enter restaurant ID to update: ");
+
+            Restaurant r = restaurantDAO.getRestaurantById(id);
+
+            if (r.getId() == 0) {
+                cout << " Restaurant not found\n";
+                pauseProgram();
+                break;
+            }
+
+            r.setName(readNonEmptyString(" Enter new name: "));
+            r.setAddress(readNonEmptyString(" Enter new address: "));
+
+            r.setStatus(readZeroOne(" Enter new status: "));
+
+            r.setPrepTime(readPositiveInt(" Enter new prep time: "));
+
+            r.setContact(readNonEmptyString(" Enter new contact: "));
+            r.setDescription(readNonEmptyString(" Enter new description: "));
+
+            r.setManagerId(readPositiveInt(" Enter new manager ID: "));
+
+            if (restaurantDAO.updateRestaurant(r))
+                cout << " Restaurant updated successfully\n";
+            else
+                cout << " Failed to update restaurant\n";
+
+            pauseProgram();
+            break;
+        }
+
+        case 0:
+            break;
+
+        default:
+            cout << " Invalid choice\n";
+            pauseProgram();
+        }
+    } while (choice != 0);
+}
+
+void adminDeleteRestaurantMenu(RestaurantDAO& restaurantDAO) {
+    int choice;
+
+    do {
+        cout << "\n===== Delete Restaurant =====\n";
+        cout << "1. Show All Restaurants\n";
+        cout << "2. Delete Restaurant\n";
+        cout << "0. Back\n";
+        choice = readPositiveInt(" Enter your choice: ");
+
+        switch (choice) {
+        case 1:
+            showAllRestaurants(restaurantDAO);
+            pauseProgram();
+            break;
+
+        case 2: {
+            showAllRestaurants(restaurantDAO);
+
+            int id = readPositiveInt(" Enter restaurant ID to delete: ");
+
+            if (restaurantDAO.deleteRestaurant(id))
+                cout << " Restaurant deleted successfully\n";
+            else
+                cout << " Failed to delete restaurant\n";
+
+            pauseProgram();
+            break;
+        }
+
+        case 0:
+            break;
+
+        default:
+            cout << " Invalid choice\n";
+            pauseProgram();
+        }
+    } while (choice != 0);
 }
