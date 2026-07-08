@@ -76,6 +76,8 @@ void managerDeleteMenuItemMenu(MenuItemDAO& menuItemDAO, Restaurant& myRestauran
 void managerUpdateRestaurantInfoMenu(RestaurantDAO& restaurantDAO, Restaurant& myRestaurant, User* currentUser);
 void managerUpdateOrderStatusMenu(OrderDAO& orderDAO, Restaurant& myRestaurant);
 
+void customerPanel(User* currentUser);
+
 int main() {
     DatabaseManager* db = DatabaseManager::getInstance();
     if (db == nullptr) {
@@ -1202,5 +1204,417 @@ void managerUpdateOrderStatusMenu(OrderDAO& orderDAO, Restaurant& myRestaurant) 
             cout << " Invalid choice\n";
             pauseProgram();
         }
+    } while (choice != 0);
+}
+
+void customerPanel(User* currentUser) {
+    MenuItemDAO menuItemDAO;
+    OrderDAO orderDAO;
+    OrderItemDAO orderItemDAO;
+    RestaurantDAO restaurantDAO;
+
+    vector<OrderItem> cart;
+    int cartRestaurantId = 0;
+
+    int choice;
+    do {
+        cout << "\n===== Customer Panel =====\n";
+        cout << " Welcome, " << currentUser->getName() << "\n";
+        cout << "1. View Restaurants\n";
+        cout << "2. View Restaurant Menu\n";
+        cout << "3. Shopping Cart\n";
+        cout << "4. Finalize Order\n";
+        cout << "5. View My Orders\n";
+        cout << "0. Logout\n";
+        choice = readPositiveInt(" Enter your choice: ");
+
+        switch (choice) {
+        case 1:
+            showAllRestaurants(restaurantDAO);
+            pauseProgram();
+            break;
+
+        case 2: {
+            showAllRestaurants(restaurantDAO);
+
+            int restaurantId = readPositiveInt(" Enter restaurant ID: ");
+
+            Restaurant restaurant = restaurantDAO.getRestaurantById(restaurantId);
+            if (restaurant.getId() == 0) {
+                cout << " Restaurant not found\n";
+                pauseProgram();
+                break;
+            }
+
+            showMenuItemsByRestaurant(restaurantId);
+            pauseProgram();
+            break;
+        }
+
+        case 3: {
+            int cartChoice;
+
+            do {
+                cout << "\n===== Shopping Cart =====\n";
+
+                if (cart.empty()) {
+                    cout << " Cart is empty.\n";
+                } else {
+                    double total = 0.0;
+
+                    cout << " Restaurant ID: " << cartRestaurantId << endl;
+                    cout << " Items:\n";
+
+                    for (size_t i = 0; i < cart.size(); i++) {
+                        MenuItem item = menuItemDAO.getMenuItemById(cart[i].getMenuItemId());
+
+                        double subtotal = cart[i].getPrice() * cart[i].getQuantity();
+                        total += subtotal;
+
+                        cout << " " << i + 1 << ". "
+                             << "Item ID: " << cart[i].getMenuItemId()
+                             << " | Name: " << item.getName()
+                             << " | Quantity: " << cart[i].getQuantity()
+                             << " | Unit Price: " << cart[i].getPrice()
+                             << " | Subtotal: " << subtotal
+                             << endl;
+                    }
+
+                    cout << "--------------------------------\n";
+                    cout << " Cart Total Price: " << total << endl;
+                }
+
+                cout << "\nShopping Cart Menu:\n";
+                cout << "1. Add item to cart\n";
+                cout << "2. Decrease/remove item from cart\n";
+                cout << "3. Clear cart\n";
+                cout << "0. Back to customer panel\n";
+                cartChoice = readPositiveInt(" Enter your choice: ");
+
+                switch (cartChoice) {
+                case 1: {
+                    showAllRestaurants(restaurantDAO);
+
+                    int restaurantId = readPositiveInt(" Enter restaurant ID: ");
+
+                    Restaurant restaurant = restaurantDAO.getRestaurantById(restaurantId);
+                    if (restaurant.getId() == 0) {
+                        cout << " Restaurant not found\n";
+                        pauseProgram();
+                        break;
+                    }
+
+                    if (restaurant.getStatus() == 0) {
+                        cout << " This restaurant is inactive.\n";
+                        pauseProgram();
+                        break;
+                    }
+
+                    if (!cart.empty() && cartRestaurantId != restaurantId) {
+                        cout << " Your cart already contains items from another restaurant.\n";
+                        cout << " Please finalize or clear your cart first.\n";
+                        pauseProgram();
+                        break;
+                    }
+
+                    vector<MenuItem> items = menuItemDAO.getMenuItemsByRestaurantId(restaurantId);
+                    if (items.empty()) {
+                        cout << " No items found\n";
+                        pauseProgram();
+                        break;
+                    }
+
+                    cout << "\n===== Available Items =====\n";
+
+                    bool hasAvailableItem = false;
+
+                    for (size_t i = 0; i < items.size(); i++) {
+                        if (items[i].getAvailable() == 1) {
+                            hasAvailableItem = true;
+
+                            cout << "ID: " << items[i].getId()
+                                 << " | Name: " << items[i].getName()
+                                 << " | Price: " << items[i].getPrice()
+                                 << endl;
+                        }
+                    }
+
+                    if (!hasAvailableItem) {
+                        cout << " No available items in this restaurant.\n";
+                        pauseProgram();
+                        break;
+                    }
+
+                    int itemId = readPositiveInt(" Enter item ID to add: ");
+
+                    MenuItem item = menuItemDAO.getMenuItemById(itemId);
+
+                    if (item.getId() == 0 ||
+                        item.getRestaurantId() != restaurantId ||
+                        item.getAvailable() != 1) {
+                        cout << " Invalid item\n";
+                        pauseProgram();
+                        break;
+                    }
+
+                    int qty = readPositiveInt(" Enter quantity: ");
+
+                    if (qty <= 0) {
+                        cout << " Invalid quantity\n";
+                        pauseProgram();
+                        break;
+                    }
+
+                    if (cart.empty()) {
+                        cartRestaurantId = restaurantId;
+                    }
+
+                    bool found = false;
+
+                    for (size_t i = 0; i < cart.size(); i++) {
+                        if (cart[i].getMenuItemId() == itemId) {
+                            cart[i].setQuantity(cart[i].getQuantity() + qty);
+                            found = true;
+                            break;
+                        }
+                    }
+
+                    if (!found) {
+                        OrderItem oi;
+                        oi.setOrderId(0);
+                        oi.setMenuItemId(item.getId());
+                        oi.setQuantity(qty);
+                        oi.setPrice(item.getPrice());
+
+                        cart.push_back(oi);
+                    }
+
+                    double total = 0.0;
+                    for (size_t i = 0; i < cart.size(); i++) {
+                        total += cart[i].getPrice() * cart[i].getQuantity();
+                    }
+
+                    cout << " Item added to cart successfully.\n";
+                    cout << " Current Cart Total Price: " << total << endl;
+
+                    pauseProgram();
+                    break;
+                }
+
+                case 2: {
+                    if (cart.empty()) {
+                        cout << " Cart is empty.\n";
+                        pauseProgram();
+                        break;
+                    }
+
+                    cout << " Enter item ID to decrease/remove: ";
+                    int itemId = readInt();
+
+                    bool found = false;
+
+                    for (size_t i = 0; i < cart.size(); i++) {
+                        if (cart[i].getMenuItemId() == itemId) {
+                            found = true;
+
+                            cout << " Current quantity: " << cart[i].getQuantity() << endl;
+                            cout << " Enter quantity to remove: ";
+                            int removeQty = readInt();
+
+                            if (removeQty <= 0) {
+                                cout << " Invalid quantity.\n";
+                                break;
+                            }
+
+                            if (removeQty >= cart[i].getQuantity()) {
+                                cart.erase(cart.begin() + i);
+                                cout << " Item removed from cart.\n";
+                            } else {
+                                cart[i].setQuantity(cart[i].getQuantity() - removeQty);
+                                cout << " Item quantity decreased.\n";
+                            }
+
+                            if (cart.empty()) {
+                                cartRestaurantId = 0;
+                            }
+
+                            break;
+                        }
+                    }
+
+                    if (!found) {
+                        cout << " Item not found in cart.\n";
+                    }
+
+                    double total = 0.0;
+                    for (size_t i = 0; i < cart.size(); i++) {
+                        total += cart[i].getPrice() * cart[i].getQuantity();
+                    }
+
+                    cout << " Current Cart Total Price: " << total << endl;
+
+                    pauseProgram();
+                    break;
+                }
+
+                case 3: {
+                    cart.clear();
+                    cartRestaurantId = 0;
+
+                    cout << " Cart cleared successfully.\n";
+                    cout << " Current Cart Total Price: 0\n";
+
+                    pauseProgram();
+                    break;
+                }
+
+                case 0:
+                    break;
+
+                default:
+                    cout << " Invalid choice.\n";
+                    pauseProgram();
+                }
+
+            } while (cartChoice != 0);
+
+            break;
+        }
+
+        case 4: {
+            if (cart.empty()) {
+                cout << " Cart is empty. Please add items first.\n";
+                pauseProgram();
+                break;
+            }
+
+            if (cartRestaurantId == 0) {
+                cout << " Invalid cart restaurant.\n";
+                pauseProgram();
+                break;
+            }
+
+            double total = 0.0;
+
+            for (size_t i = 0; i < cart.size(); i++) {
+                total += cart[i].getPrice() * cart[i].getQuantity();
+            }
+
+            cout << "\n===== Final Order Preview =====\n";
+
+            for (size_t i = 0; i < cart.size(); i++) {
+                MenuItem item = menuItemDAO.getMenuItemById(cart[i].getMenuItemId());
+
+                cout << "Item: " << item.getName()
+                     << " | Quantity: " << cart[i].getQuantity()
+                     << " | Unit Price: " << cart[i].getPrice()
+                     << " | Subtotal: " << cart[i].getPrice() * cart[i].getQuantity()
+                     << endl;
+            }
+
+            cout << "--------------------------------\n";
+            cout << "Total Price: " << total << endl;
+
+            int confirm = readZeroOne("Finalize this order? (1 = Yes, 0 = No): ");
+
+            if (confirm != 1) {
+                cout << " Order finalization cancelled.\n";
+                pauseProgram();
+                break;
+            }
+
+            string orderDate = readNonEmptyString("Enter order date (e.g. 2026-06-11 18:30): ");
+
+            Order order;
+            order.setCustomerId(currentUser->getId());
+            order.setRestaurantId(cartRestaurantId);
+            order.setTotalPrice(total);
+
+            order.setStatus("Preparing");
+
+            order.setOrderDate(orderDate);
+
+            int orderId = orderDAO.addOrderAndReturnId(order);
+
+            if (orderId == -1) {
+                cout << " Failed to place order.\n";
+                pauseProgram();
+                break;
+            }
+
+            bool ok = true;
+
+            for (size_t i = 0; i < cart.size(); i++) {
+                cart[i].setOrderId(orderId);
+
+                if (!orderItemDAO.addOrderItem(cart[i])) {
+                    ok = false;
+                }
+            }
+
+            if (ok) {
+                cout << " Order finalized successfully.\n";
+                cout << " Order ID: " << orderId << endl;
+                cout << " Total Price: " << total << endl;
+
+                cart.clear();
+                cartRestaurantId = 0;
+
+                cout << " Cart is now empty.\n";
+            } else {
+                cout << " Order was created, but some items failed to save.\n";
+                cout << " Cart was not cleared so you can try again or check the database.\n";
+            }
+
+            pauseProgram();
+            break;
+        }
+
+        case 5: {
+            vector<Order> orders = orderDAO.getOrdersByCustomerId(currentUser->getId());
+
+            if (orders.empty()) {
+                cout << "You have no orders.\n";
+            } else {
+                cout << "\n===== My Orders =====\n";
+
+                for (size_t i = 0; i < orders.size(); i++) {
+                    cout << "Order ID: " << orders[i].getId()
+                         << " | Restaurant ID: " << orders[i].getRestaurantId()
+                         << " | Total: " << orders[i].getTotalPrice()
+                         << " | Status: " << orders[i].getStatus()
+                         << " | Date: " << orders[i].getOrderDate()
+                         << endl;
+
+                    vector<OrderItem> items = orderItemDAO.getItemsByOrderId(orders[i].getId());
+
+                    for (size_t j = 0; j < items.size(); j++) {
+                        MenuItem item = menuItemDAO.getMenuItemById(items[j].getMenuItemId());
+
+                        cout << "   Item: " << item.getName()
+                             << " | Item ID: " << items[j].getMenuItemId()
+                             << " | Quantity: " << items[j].getQuantity()
+                             << " | Unit Price: " << items[j].getPrice()
+                             << " | Subtotal: " << items[j].getPrice() * items[j].getQuantity()
+                             << endl;
+                    }
+
+                    cout << "--------------------------------\n";
+                }
+            }
+
+            pauseProgram();
+            break;
+        }
+
+        case 0:
+            cout << "Logging out...\n";
+            break;
+
+        default:
+            cout << "Invalid choice.\n";
+            pauseProgram();
+        }
+
     } while (choice != 0);
 }
