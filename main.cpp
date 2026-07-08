@@ -63,6 +63,12 @@ void adminDeleteUserMenu(UserDAO& userDAO);
 void adminAddRestaurantMenu(RestaurantDAO& restaurantDAO);
 void adminUpdateRestaurantMenu(RestaurantDAO& restaurantDAO);
 void adminDeleteRestaurantMenu(RestaurantDAO& restaurantDAO);
+void showReports(UserDAO& userDAO, OrderDAO& orderDAO);
+void showTotalSales(OrderDAO& orderDAO);
+void showTotalOrders(OrderDAO& orderDAO);
+void showActiveUsersByOrders(UserDAO& userDAO, OrderDAO& orderDAO);
+
+
 
 int main() {
     DatabaseManager* db = DatabaseManager::getInstance();
@@ -674,4 +680,98 @@ void adminDeleteRestaurantMenu(RestaurantDAO& restaurantDAO) {
             pauseProgram();
         }
     } while (choice != 0);
+}
+
+void showReports(UserDAO& userDAO, OrderDAO& orderDAO) {
+    int choice;
+
+    do {
+        cout << "\n===== Admin Reports =====\n";
+        cout << "1. Total Sales\n";
+        cout << "2. Total Orders\n";
+        cout << "3. Active Users\n";
+        cout << "0. Back\n";
+
+        choice = readPositiveInt(" Enter your choice: ");
+
+        switch (choice) {
+        case 1:
+            showTotalSales(orderDAO);
+            pauseProgram();
+            break;
+
+        case 2:
+            showTotalOrders(orderDAO);
+            pauseProgram();
+            break;
+
+        case 3:
+            showActiveUsersByOrders(userDAO, orderDAO);
+            pauseProgram();
+            break;
+
+        case 0:
+            break;
+
+        default:
+            cout << " Invalid choice\n";
+            pauseProgram();
+            break;
+        }
+
+    } while (choice != 0);
+}
+
+void showTotalSales(OrderDAO& orderDAO) {
+    vector<Order> orders = orderDAO.getAllOrders();
+
+    double totalSales = 0.0;
+
+    for (size_t i = 0; i < orders.size(); i++) {
+        totalSales += orders[i].getTotalPrice();
+    }
+
+    cout << "\n===== Total Sales Report =====\n";
+    cout << "Total Sales: " << totalSales << endl;
+}
+
+void showTotalOrders(OrderDAO& orderDAO) {
+    vector<Order> orders = orderDAO.getAllOrders();
+
+    cout << "\n===== Total Orders Report =====\n";
+    cout << "Total Orders: " << orders.size() << endl;
+}
+
+void showActiveUsersByOrders(UserDAO& userDAO, OrderDAO& orderDAO) {
+    vector<User> users = userDAO.getAllUsers();
+    vector<Order> orders = orderDAO.getAllOrders();
+
+    map<int, int> userOrderCount;
+
+    for (size_t i = 0; i < orders.size(); i++) {
+        int customerId = orders[i].getCustomerId();
+        userOrderCount[customerId]++;
+    }
+
+    int activeUsers = 0;
+
+    cout << "\n===== Active Users Report =====\n";
+    cout << "Active users are customers who have placed at least one order.\n\n";
+
+    for (size_t i = 0; i < users.size(); i++) {
+        int userId = users[i].getId();
+
+        if (userOrderCount[userId] > 0) {
+            activeUsers++;
+
+            cout << "User ID: " << users[i].getId()
+                 << " | Name: " << users[i].getName()
+                 << " | Username: " << users[i].getUsername()
+                 << " | Role: " << users[i].getRole()
+                 << " | Orders: " << userOrderCount[userId]
+                 << endl;
+        }
+    }
+
+    cout << "\nTotal Active Users: " << activeUsers << endl;
 }
