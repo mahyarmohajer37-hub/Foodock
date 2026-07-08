@@ -49,6 +49,14 @@ void showAllUsers(UserDAO& userDAO);
 
 void showMenuItemsByRestaurant(int restaurantId);
 
+void seedTestData(UserDAO& userDAO, RestaurantDAO& restaurantDAO);
+
+void registerManager(UserDAO& userDAO);
+
+void registerCustomer(UserDAO& userDAO);
+
+void login(UserDAO& userDAO);
+
 int main() {
     DatabaseManager* db = DatabaseManager::getInstance();
     if (db == nullptr) {
@@ -266,4 +274,104 @@ void showMenuItemsByRestaurant(int restaurantId) {
              << " | Description: " << items[i].getDescription()
              << endl;
     }
+}
+
+void seedTestData(UserDAO& userDAO, RestaurantDAO& restaurantDAO) {
+    if (!userDAO.getAllUsers().empty()) return;
+
+    userDAO.addUser(User(0, "System Admin", "admin", "1234", "admin"));
+    userDAO.addUser(User(0, "Manager One", "manager", "1234", "manager"));
+    userDAO.addUser(User(0, "Customer One", "customer", "1234", "customer"));
+
+    User* manager = userDAO.login("manager", "1234");
+    if (manager != nullptr) {
+        Restaurant r(0, "Foodock Restaurant", "Main Street", 1, 20, "09120000000", "Best food in town", manager->getId());
+        restaurantDAO.addRestaurant(r);
+        delete manager;
+    }
+}
+
+void registerManager(UserDAO& userDAO) {
+    RestaurantDAO restaurantDAO;
+
+    cout << "\n===== Register as Manager =====\n";
+
+    string name = readNonEmptyString(" Enter manager name: ");
+    string username = readNonEmptyString(" Enter username: ");
+    string password = readNonEmptyString(" Enter password: ");
+
+    bool userAdded = userDAO.addUser(User(0, name, username, password, "manager"));
+
+    if (!userAdded) {
+        cout << " Manager registration failed\n";
+        return;
+    }
+
+    User* manager = userDAO.login(username, password);
+
+    if (manager == nullptr) {
+        cout << " Manager user was created, but could not login to get manager ID\n";
+        return;
+    }
+
+    cout << "\n===== Restaurant Information =====\n";
+
+    string restaurantName = readNonEmptyString(" Enter restaurant name: ");
+    string address = readNonEmptyString("Enter restaurant address: ");
+
+    int status = readZeroOne(" Enter restaurant status (1=active, 0=inactive): ");
+
+    int prepTime = readPositiveInt(" Enter preparation time: ");
+
+    string contact = readNonEmptyString(" Enter contact: ");
+    string description = readNonEmptyString(" Enter description: ");
+
+    Restaurant restaurant(
+        0,
+        restaurantName,
+        address,
+        status,
+        prepTime,
+        contact,
+        description,
+        manager->getId()
+    );
+
+    if (restaurantDAO.addRestaurant(restaurant)) {
+        cout << " Manager and restaurant registered successfully.\n";
+    } else {
+        cout << " Manager registered, but restaurant registration failed.\n";
+    }
+
+    delete manager;
+}
+
+void registerCustomer(UserDAO& userDAO) {
+    string name = readNonEmptyString("Enter name: ");
+    string username = readNonEmptyString("Enter username: ");
+    string password = readNonEmptyString("Enter password: ");
+
+    if (userDAO.addUser(User(0, name, username, password, "customer")))
+        cout << "Customer registered successfully.\n";
+    else
+        cout << " Registration failed\n";
+}
+
+void login(UserDAO& userDAO) {
+    string username = readNonEmptyString("Enter username: ");
+    string password = readNonEmptyString("Enter password: ");
+
+    User* currentUser = userDAO.login(username, password);
+    if (currentUser == nullptr) {
+        cout << " Login failed\n";
+        cout << " Invalid username or password\n";
+        return;
+    }
+
+    if (currentUser->getRole() == "admin") adminPanel(currentUser);
+    else if (currentUser->getRole() == "manager") managerPanel(currentUser);
+    else if (currentUser->getRole() == "customer") customerPanel(currentUser);
+    else cout << " Unknown role\n";
+
+    delete currentUser;
 }
