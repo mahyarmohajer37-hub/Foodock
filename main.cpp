@@ -68,7 +68,13 @@ void showTotalSales(OrderDAO& orderDAO);
 void showTotalOrders(OrderDAO& orderDAO);
 void showActiveUsersByOrders(UserDAO& userDAO, OrderDAO& orderDAO);
 
-
+void managerPanel(User* currentUser);
+Restaurant getManagerRestaurant(int managerId);
+void managerAddMenuItemMenu(MenuItemDAO& menuItemDAO, Restaurant& myRestaurant);
+void managerUpdateMenuItemMenu(MenuItemDAO& menuItemDAO, Restaurant& myRestaurant);
+void managerDeleteMenuItemMenu(MenuItemDAO& menuItemDAO, Restaurant& myRestaurant);
+void managerUpdateRestaurantInfoMenu(RestaurantDAO& restaurantDAO, Restaurant& myRestaurant, User* currentUser);
+void managerUpdateOrderStatusMenu(OrderDAO& orderDAO, Restaurant& myRestaurant);
 
 int main() {
     DatabaseManager* db = DatabaseManager::getInstance();
@@ -774,4 +780,427 @@ void showActiveUsersByOrders(UserDAO& userDAO, OrderDAO& orderDAO) {
     }
 
     cout << "\nTotal Active Users: " << activeUsers << endl;
+}
+
+void managerPanel(User* currentUser) {
+    RestaurantDAO restaurantDAO;
+    MenuItemDAO menuItemDAO;
+    OrderDAO orderDAO;
+    OrderItemDAO orderItemDAO;
+
+    Restaurant myRestaurant = getManagerRestaurant(currentUser->getId());
+
+    if (myRestaurant.getId() == 0) {
+        cout << " You do not have an assigned restaurant\n";
+        pauseProgram();
+        return;
+    }
+
+    int choice;
+    do {
+        cout << "\n===== Manager Panel =====\n";
+        cout << " Restaurant: " << myRestaurant.getName() << "\n";
+        cout << "1. View My Menu Items\n";
+        cout << "2. Add Menu Item\n";
+        cout << "3. Update Menu Item\n";
+        cout << "4. Delete Menu Item\n";
+        cout << "5. View Orders\n";
+        cout << "6. Update Restaurant Info\n";
+        cout << "7. Update Order Status\n";
+        cout << "0. Logout\n";
+        cout << " Enter your choice: ";
+        choice = readInt();
+
+        switch (choice) {
+        case 1:
+            showMenuItemsByRestaurant(myRestaurant.getId());
+            pauseProgram();
+            break;
+
+        case 2: {
+            managerAddMenuItemMenu(menuItemDAO, myRestaurant);
+    		break;
+        }
+
+        case 3: {
+            managerUpdateMenuItemMenu(menuItemDAO, myRestaurant);
+    		break;
+        }
+
+        case 4: {
+            managerDeleteMenuItemMenu(menuItemDAO, myRestaurant);
+    		break;
+        }
+
+        case 5: {
+            vector<Order> orders = orderDAO.getOrdersByRestaurantId(myRestaurant.getId());
+
+            if (orders.empty()) {
+                cout << " No orders found\n";
+            } else {
+                for (size_t i = 0; i < orders.size(); i++) {
+                    cout << "Order ID: " << orders[i].getId()
+                         << " | Customer ID: " << orders[i].getCustomerId()
+                         << " | Total: " << orders[i].getTotalPrice()
+                         << " | Status: " << orders[i].getStatus()
+                         << " | Date: " << orders[i].getOrderDate()
+                         << endl;
+
+                    vector<OrderItem> items = orderItemDAO.getItemsByOrderId(orders[i].getId());
+                    for (size_t j = 0; j < items.size(); j++) {
+                        cout << "   Item ID: " << items[j].getMenuItemId()
+                             << " | Quantity: " << items[j].getQuantity()
+                             << " | Price: " << items[j].getPrice()
+                             << endl;
+                    }
+                }
+            }
+            pauseProgram();
+            break;
+        }
+        
+        case 6: {
+            managerUpdateRestaurantInfoMenu(restaurantDAO, myRestaurant, currentUser);
+    		break;
+        }
+
+        case 7: {
+            managerUpdateOrderStatusMenu(orderDAO, myRestaurant);
+    		break;
+        }
+
+        case 0:
+            cout << " Logging out...\n";
+            break;
+
+        default:
+            cout << " Invalid choice\n";
+            pauseProgram();
+        }
+    } while (choice != 0);
+}
+
+Restaurant getManagerRestaurant(int managerId) {
+    RestaurantDAO restaurantDAO;
+    return restaurantDAO.getRestaurantByManagerId(managerId);
+}
+
+void managerAddMenuItemMenu(MenuItemDAO& menuItemDAO, Restaurant& myRestaurant) {
+    int choice;
+
+    do {
+        cout << "\n===== Add Menu Item =====\n";
+        cout << "1. Add Menu Item\n";
+        cout << "0. Back\n";
+        cout << " Enter your choice: ";
+        choice = readInt();
+
+        switch (choice) {
+        case 1: {
+            MenuItem item;
+            item.setRestaurantId(myRestaurant.getId());
+            item.setName(readNonEmptyString(" Enter item name: "));
+            item.setCategory(readNonEmptyString(" Enter category: "));
+
+            item.setPrice(readPositiveDouble(" Enter price: "));
+
+            item.setAvailable(readZeroOne(" Enter available (1/0): "));
+
+            item.setDescription(readNonEmptyString(" Enter description: "));
+
+            if (menuItemDAO.addMenuItem(item))
+                cout << " Menu item added successfully\n";
+            else
+                cout << " Failed to add menu item\n";
+
+            pauseProgram();
+            break;
+        }
+
+        case 0:
+            break;
+
+        default:
+            cout << " Invalid choice\n";
+            pauseProgram();
+        }
+    } while (choice != 0);
+}
+
+void managerUpdateMenuItemMenu(MenuItemDAO& menuItemDAO, Restaurant& myRestaurant) {
+    int choice;
+
+    do {
+        cout << "\n===== Update Menu Item =====\n";
+        cout << "1. View My Menu Items\n";
+        cout << "2. Update Menu Item\n";
+        cout << "0. Back\n";
+        choice = readPositiveInt(" Enter your choice: ");
+
+        switch (choice) {
+        case 1:
+            showMenuItemsByRestaurant(myRestaurant.getId());
+            pauseProgram();
+            break;
+
+        case 2: {
+            showMenuItemsByRestaurant(myRestaurant.getId());
+
+            int id = readPositiveInt(" Enter menu item ID to update: ");
+
+            MenuItem item = menuItemDAO.getMenuItemById(id);
+
+            if (item.getId() == 0 || item.getRestaurantId() != myRestaurant.getId()) {
+                cout << " Invalid item\n";
+                pauseProgram();
+                break;
+            }
+
+            item.setName(readNonEmptyString(" Enter new name: "));
+            item.setCategory(readNonEmptyString(" Enter new category: "));
+
+            item.setPrice(readPositiveDouble(" Enter new price: "));
+
+            item.setAvailable(readPositiveInt(" Enter available (1/0): "));
+
+            item.setDescription(readNonEmptyString(" Enter new description: "));
+
+            if (menuItemDAO.updateMenuItem(item))
+                cout << " Menu item updated successfully\n";
+            else
+                cout << " Failed to update menu item\n";
+
+            pauseProgram();
+            break;
+        }
+
+        case 0:
+            break;
+
+        default:
+            cout << " Invalid choice\n";
+            pauseProgram();
+        }
+    } while (choice != 0);
+}
+
+void managerDeleteMenuItemMenu(MenuItemDAO& menuItemDAO, Restaurant& myRestaurant) {
+    int choice;
+
+    do {
+        cout << "\n===== Delete Menu Item =====\n";
+        cout << "1. View My Menu Items\n";
+        cout << "2. Delete Menu Item\n";
+        cout << "0. Back\n";
+        cout << " Enter your choice: ";
+        choice = readInt();
+
+        switch (choice) {
+        case 1:
+            showMenuItemsByRestaurant(myRestaurant.getId());
+            pauseProgram();
+            break;
+
+        case 2: {
+            showMenuItemsByRestaurant(myRestaurant.getId());
+
+            int id = readPositiveInt(" Enter menu item ID to delete: ");
+
+            MenuItem item = menuItemDAO.getMenuItemById(id);
+
+            if (item.getId() == 0 || item.getRestaurantId() != myRestaurant.getId()) {
+                cout << " Invalid item\n";
+                pauseProgram();
+                break;
+            }
+
+            if (menuItemDAO.deleteMenuItem(id))
+                cout << " Menu item deleted successfully\n";
+            else
+                cout << " Failed to delete menu item\n";
+
+            pauseProgram();
+            break;
+        }
+
+        case 0:
+            break;
+
+        default:
+            cout << " Invalid choice\n";
+            pauseProgram();
+        }
+    } while (choice != 0);
+}
+
+void managerUpdateRestaurantInfoMenu(RestaurantDAO& restaurantDAO, Restaurant& myRestaurant, User* currentUser) {
+    int choice;
+
+    do {
+        cout << "\n===== Update Restaurant Info =====\n";
+        cout << "1. Show Current Restaurant Info\n";
+        cout << "2. Update Restaurant Info\n";
+        cout << "0. Back\n";
+        cout << " Enter your choice: ";
+        choice = readInt();
+
+        switch (choice) {
+        case 1:
+            cout << "\nCurrent Name: " << myRestaurant.getName() << endl;
+            cout << "Current Address: " << myRestaurant.getAddress() << endl;
+            cout << "Current Status: " << (myRestaurant.getStatus() ? "active" : "inactive") << endl;
+            cout << "Current Prep Time: " << myRestaurant.getPrepTime() << endl;
+            cout << "Current Contact: " << myRestaurant.getContact() << endl;
+            cout << "Current Description: " << myRestaurant.getDescription() << endl;
+            pauseProgram();
+            break;
+
+        case 2:
+            cout << "\nCurrent Name: " << myRestaurant.getName() << endl;
+            cout << "Current Address: " << myRestaurant.getAddress() << endl;
+            cout << "Current Status: " << (myRestaurant.getStatus() ? "active" : "inactive") << endl;
+            cout << "Current Prep Time: " << myRestaurant.getPrepTime() << endl;
+            cout << "Current Contact: " << myRestaurant.getContact() << endl;
+            cout << "Current Description: " << myRestaurant.getDescription() << endl;
+
+            myRestaurant.setName(readNonEmptyString(" Enter new name: "));
+            myRestaurant.setAddress(readNonEmptyString(" Enter new address: "));
+
+            myRestaurant.setStatus(readPositiveInt (" Enter new status (1=active, 0=inactive): "));
+
+            myRestaurant.setPrepTime(readPositiveInt(" Enter new preparation time: "));
+
+            myRestaurant.setContact(readNonEmptyString(" Enter new contact: "));
+            myRestaurant.setDescription(readNonEmptyString(" Enter new description: "));
+            myRestaurant.setManagerId(currentUser->getId());
+
+            if (restaurantDAO.updateRestaurant(myRestaurant)) {
+                cout << " Restaurant info updated successfully\n";
+                myRestaurant = restaurantDAO.getRestaurantByManagerId(currentUser->getId());
+            } else {
+                cout << " Failed to update restaurant info\n";
+            }
+
+            pauseProgram();
+            break;
+
+        case 0:
+            break;
+
+        default:
+            cout << " Invalid choice\n";
+            pauseProgram();
+        }
+    } while (choice != 0);
+}
+
+void managerUpdateOrderStatusMenu(OrderDAO& orderDAO, Restaurant& myRestaurant) {
+    int choice;
+
+    do {
+        cout << "\n===== Update Order Status =====\n";
+        cout << "1. View Orders\n";
+        cout << "2. Update Order Status\n";
+        cout << "0. Back\n";
+        choice = readPositiveInt(" Enter your choice: ");
+
+        switch (choice) {
+        case 1: {
+            vector<Order> orders = orderDAO.getOrdersByRestaurantId(myRestaurant.getId());
+
+            if (orders.empty()) {
+                cout << " No orders found\n";
+            } else {
+                cout << "\n===== Orders =====\n";
+
+                for (size_t i = 0; i < orders.size(); i++) {
+                    cout << "Order ID: " << orders[i].getId()
+                         << " | Customer ID: " << orders[i].getCustomerId()
+                         << " | Total: " << orders[i].getTotalPrice()
+                         << " | Status: " << orders[i].getStatus()
+                         << " | Date: " << orders[i].getOrderDate()
+                         << endl;
+                }
+            }
+
+            pauseProgram();
+            break;
+        }
+
+        case 2: {
+            vector<Order> orders = orderDAO.getOrdersByRestaurantId(myRestaurant.getId());
+
+            if (orders.empty()) {
+                cout << " No orders found\n";
+                pauseProgram();
+                break;
+            }
+
+            cout << "\n===== Orders =====\n";
+
+            for (size_t i = 0; i < orders.size(); i++) {
+                cout << "Order ID: " << orders[i].getId()
+                     << " | Customer ID: " << orders[i].getCustomerId()
+                     << " | Total: " << orders[i].getTotalPrice()
+                     << " | Status: " << orders[i].getStatus()
+                     << " | Date: " << orders[i].getOrderDate()
+                     << endl;
+            }
+
+            int orderId = readPositiveInt("\n Enter order ID to update: ");
+
+            Order selectedOrder = orderDAO.getOrderById(orderId);
+
+            if (selectedOrder.getId() == 0) {
+                cout << " Order not found\n";
+                pauseProgram();
+                break;
+            }
+
+            if (selectedOrder.getRestaurantId() != myRestaurant.getId()) {
+                cout << " You cannot update orders of another restaurant\n";
+                pauseProgram();
+                break;
+            }
+
+            cout << "\nSelect new status:\n";
+            cout << "1. Preparing\n";
+            cout << "2. Ready to Send\n";
+            cout << "3. Delivered\n";
+            cout << "0. Back\n";
+
+            int statusChoice = readPositiveInt(" Enter your choice: ");
+            string newStatus;
+
+            if (statusChoice == 1) {
+                newStatus = "Preparing";
+            } else if (statusChoice == 2) {
+                newStatus = "Ready to Send";
+            } else if (statusChoice == 3) {
+                newStatus = "Delivered";
+            } else if (statusChoice == 0) {
+                break;
+            } else {
+                cout << " Invalid status choice\n";
+                pauseProgram();
+                break;
+            }
+
+            if (orderDAO.updateOrderStatus(orderId, newStatus))
+                cout << " Order status updated successfully\n";
+            else
+                cout << " Failed to update order status\n";
+
+            pauseProgram();
+            break;
+        }
+
+        case 0:
+            break;
+
+        default:
+            cout << " Invalid choice\n";
+            pauseProgram();
+        }
+    } while (choice != 0);
 }
