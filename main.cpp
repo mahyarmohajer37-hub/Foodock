@@ -43,6 +43,12 @@ double readPositiveDouble(const string& prompt);
 
 void showWelcome();
 
+void showAllRestaurants(RestaurantDAO& restaurantDAO);
+
+void showAllUsers(UserDAO& userDAO);
+
+void showMenuItemsByRestaurant(int restaurantId);
+
 int main() {
     DatabaseManager* db = DatabaseManager::getInstance();
     if (db == nullptr) {
@@ -200,4 +206,64 @@ void showWelcome() {
     cout << "3. Register as Customer\n";
     cout << "0. Exit\n";
     cout << "---------------------------------\n";
+}
+
+void showAllRestaurants(RestaurantDAO& restaurantDAO) {
+    vector<Restaurant> restaurants = restaurantDAO.getAllRestaurants();
+
+    if (restaurants.empty()) {
+        cout << " No restaurants found\n";
+        return;
+    }
+
+    cout << "\n===== Restaurants =====\n";
+    for (size_t i = 0; i < restaurants.size(); i++) {
+        cout << " ID: " << restaurants[i].getId()
+             << " | Name: " << restaurants[i].getName()
+             << " | Address: " << restaurants[i].getAddress()
+             << " | Status: " << (restaurants[i].getStatus() ? "active" : "inactive")
+             << " | PrepTime: " << restaurants[i].getPrepTime()
+             << " | Contact: " << restaurants[i].getContact()
+             << " | Manager ID: " << restaurants[i].getManagerId()
+             << endl;
+    }
+}
+
+void showAllUsers(UserDAO& userDAO) {
+    vector<User> users = userDAO.getAllUsers();
+
+    if (users.empty()) {
+        cout << " No users found\n";
+        return;
+    }
+
+    cout << "\n===== Users =====\n";
+    for (size_t i = 0; i < users.size(); i++) {
+        cout << " ID: " << users[i].getId()
+             << " | Name: " << users[i].getName()
+             << " | Username: " << users[i].getUsername()
+             << " | Role: " << users[i].getRole()
+             << endl;
+    }
+}
+
+void showMenuItemsByRestaurant(int restaurantId) {
+    MenuItemDAO menuItemDAO;
+    vector<MenuItem> items = menuItemDAO.getMenuItemsByRestaurantId(restaurantId);
+
+    if (items.empty()) {
+        cout << " No menu items found\n";
+        return;
+    }
+
+    cout << "\n===== Menu Items =====\n";
+    for (size_t i = 0; i < items.size(); i++) {
+        cout << " ID: " << items[i].getId()
+             << " | Name: " << items[i].getName()
+             << " | Category: " << items[i].getCategory()
+             << " | Price: " << items[i].getPrice()
+             << " | Available: " << (items[i].getAvailable() ? "yes" : "no")
+             << " | Description: " << items[i].getDescription()
+             << endl;
+    }
 }
