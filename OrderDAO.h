@@ -3,6 +3,7 @@
 
 #include "Order.h"
 #include <vector>
+#include <string>
 
 class OrderDAO {
 public:
@@ -15,6 +16,12 @@ public:
     std::vector<Order> getAllOrders();
     std::vector<Order> getOrdersByCustomerId(int customerId);
     std::vector<Order> getOrdersByRestaurantId(int restaurantId);
+
+    void applyCustomerLoyaltyAfterOrder(Order& order);
+
+private:
+    bool insertMembershipHistory(int userId, const std::string& oldLevel,
+                                 const std::string& newLevel, int pointsAtChange);
 };
 
 #endif

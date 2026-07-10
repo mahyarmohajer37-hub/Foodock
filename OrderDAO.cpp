@@ -1,8 +1,67 @@
 #include "OrderDAO.h"
 #include "DatabaseManager.h"
+#include "UserDAO.h"
+#include "Customer.h"
 #include "sqlite3.h"
 #include <iostream>
 #include <sstream>
+
+void OrderDAO::applyCustomerLoyaltyAfterOrder(Order& order) {
+    UserDAO userDAO;
+    Customer* customer = userDAO.getCustomerById(order.getCustomerId());
+
+    if (customer == NULL) {
+        return;
+    }
+
+    std::string oldLevel = customer->getLevelName();
+
+    int earnedPoints =
+        static_cast<int>(order.getTotalPrice() * customer->getPointMultiplier());
+
+    customer->addPoints(earnedPoints);
+
+    std::string newLevel = customer->getLevelName();
+
+    if (oldLevel != newLevel) {
+        insertMembershipHistory(customer->getId(), oldLevel, newLevel, customer->getPoints());
+    }
+
+    userDAO.updateCustomerLoyalty(
+        customer->getId(),
+        customer->getPoints(),
+        customer->getLevelName()
+    );
+
+    delete customer;
+}
+
+bool OrderDAO::insertMembershipHistory(int userId, const std::string& oldLevel,
+                                       const std::string& newLevel, int pointsAtChange) {
+    sqlite3* db = DatabaseManager::getInstance()->getDB();
+
+    std::string sql =
+        "INSERT INTO MembershipHistory "
+        "(user_id, old_level, new_level, points_at_change) "
+        "VALUES (?, ?, ?, ?);";
+
+    sqlite3_stmt* stmt;
+
+    if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL) != SQLITE_OK) {
+        std::cout << "Error preparing membership history statement: "
+                  << sqlite3_errmsg(db) << std::endl;
+        return false;
+    }
+
+    sqlite3_bind_int(stmt, 1, userId);
+    sqlite3_bind_text(stmt, 2, oldLevel.c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 3, newLevel.c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_int(stmt, 4, pointsAtChange);
+
+    bool success = (sqlite3_step(stmt) == SQLITE_DONE);
+    sqlite3_finalize(stmt);
+    return success;
+}
 
 bool OrderDAO::addOrder(Order order) {
     sqlite3* db = DatabaseManager::getInstance()->getDB();
@@ -47,9 +106,9 @@ int OrderDAO::addOrderAndReturnId(Order order) {
         return -1;
     }
 
-    return static_cast<int>(sqlite3_last_insert_rowid(db));
+    int orderId = static_cast<int>(sqlite3_last_insert_rowid(db));
+    return orderId;
 }
-
 
 bool OrderDAO::updateOrderStatus(int orderId, std::string status) {
     sqlite3* db = DatabaseManager::getInstance()->getDB();
