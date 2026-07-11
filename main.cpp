@@ -12,10 +12,13 @@
 #include "OrderItemDAO.h"
 
 #include "User.h"
+#include "Customer.h"
 #include "Restaurant.h"
 #include "MenuItem.h"
 #include "Order.h"
 #include "OrderItem.h"
+#include "MembershipLevel.h"
+#include "MembershipFactory.h"
 
 using namespace std;
 
@@ -67,6 +70,10 @@ void showReports(UserDAO& userDAO, OrderDAO& orderDAO);
 void showTotalSales(OrderDAO& orderDAO);
 void showTotalOrders(OrderDAO& orderDAO);
 void showActiveUsersByOrders(UserDAO& userDAO, OrderDAO& orderDAO);
+void adminModifyUserLoyalty(UserDAO& userDAO);
+void adminApplyInactivityDowngrade(UserDAO& userDAO);
+void adminViewMembershipHistory(UserDAO& userDAO);
+void showMembershipLevelStats(UserDAO& userDAO);
 
 void managerPanel(User* currentUser);
 Restaurant getManagerRestaurant(int managerId);
@@ -415,7 +422,10 @@ void adminPanel(User* currentUser) {
         cout << "5. Add Restaurant\n";
         cout << "6. Update Restaurant\n";
         cout << "7. Delete Restaurant\n";
-        cout << "8. Reports\n";
+        cout << "8. Modify User Points/Level\n";    
+        cout << "9. Apply Inactivity Downgrade\n";   
+        cout << "10. View Level Change Logs\n";      
+        cout << "11. Reports\n";                   
         cout << "0. Logout\n";
         cout << " Enter your choice: ";
         choice = readInt();
@@ -425,45 +435,40 @@ void adminPanel(User* currentUser) {
             showAllUsers(userDAO);
             pauseProgram();
             break;
-
         case 2:
             showAllRestaurants(restaurantDAO);
             pauseProgram();
             break;
-
-        case 3: {
+        case 3:
             adminAddUserMenu(userDAO);
-    		break;
-        }
-
-        case 4: {
+            break;
+        case 4:
             adminDeleteUserMenu(userDAO);
-    		break;
-        }
-
-        case 5: {
+            break;
+        case 5:
             adminAddRestaurantMenu(restaurantDAO);
-    		break;
-        }
-
-        case 6: {
+            break;
+        case 6:
             adminUpdateRestaurantMenu(restaurantDAO);
-    		break;
-        }
-
-        case 7: {
+            break;
+        case 7:
             adminDeleteRestaurantMenu(restaurantDAO);
-    		break;
-        }
-
+            break;
         case 8:
+            adminModifyUserLoyalty(userDAO); 
+            break;
+        case 9:
+            adminApplyInactivityDowngrade(userDAO); 
+            break;
+        case 10:
+            adminViewMembershipHistory(userDAO); 
+            break;
+        case 11:
             showReports(userDAO, orderDAO);
             break;
-
         case 0:
             cout << " Logging out...\n";
             break;
-
         default:
             cout << " Invalid choice\n";
             pauseProgram();
@@ -472,6 +477,7 @@ void adminPanel(User* currentUser) {
 
     } while (choice != 0);
 }
+
 
 void adminAddUserMenu(UserDAO& userDAO) {
     int choice;
@@ -694,43 +700,39 @@ void adminDeleteRestaurantMenu(RestaurantDAO& restaurantDAO) {
 
 void showReports(UserDAO& userDAO, OrderDAO& orderDAO) {
     int choice;
-
     do {
-        cout << "\n===== Admin Reports =====\n";
+        cout << "\n===== Users Reports =====\n";
         cout << "1. Total Sales\n";
         cout << "2. Total Orders\n";
         cout << "3. Active Users\n";
+        cout << "4. User Membership Level Statistics\n";
         cout << "0. Back\n";
-
-        choice = readPositiveInt(" Enter your choice: ");
+        cout << " Enter your choice: ";
+        choice = readInt();
 
         switch (choice) {
         case 1:
             showTotalSales(orderDAO);
-            pauseProgram();
             break;
-
         case 2:
             showTotalOrders(orderDAO);
-            pauseProgram();
             break;
-
         case 3:
             showActiveUsersByOrders(userDAO, orderDAO);
-            pauseProgram();
             break;
-
+        case 4:
+            showMembershipLevelStats(userDAO);
+            break;
         case 0:
             break;
-
         default:
             cout << " Invalid choice\n";
             pauseProgram();
             break;
         }
-
     } while (choice != 0);
 }
+
 
 void showTotalSales(OrderDAO& orderDAO) {
     vector<Order> orders = orderDAO.getAllOrders();
@@ -784,6 +786,122 @@ void showActiveUsersByOrders(UserDAO& userDAO, OrderDAO& orderDAO) {
     }
 
     cout << "\nTotal Active Users: " << activeUsers << endl;
+}
+
+void adminModifyUserLoyalty(UserDAO& userDAO) {
+    cout << "\n===== Modify Customer Loyalty (Admin) =====\n";
+    cout << "Enter Customer User ID: ";
+    int customerId = readInt();
+
+    Customer* customer = userDAO.getCustomerById(customerId);
+    if (customer == NULL) {
+        cout << " [Error] Customer not found with ID " << customerId << ".\n";
+        pauseProgram();
+        return;
+    }
+
+    cout << "\nCurrent details for " << customer->getName() << ":\n";
+    cout << " - Current Points: " << customer->getPoints() << "\n";
+    cout << " - Current Level: " << customer->getLevelName() << "\n";
+
+    cout << "\nEnter new loyalty points: ";
+    int newPoints = readInt();
+    if (newPoints < 0) {
+        cout << " [Error] Points cannot be negative!\n";
+        delete customer;
+        pauseProgram();
+        return;
+    }
+
+    std::string oldLevel = customer->getLevelName();
+    
+    customer->setPoints(newPoints);
+    std::string newLevel = customer->getLevelName();
+
+    if (userDAO.updateCustomerLoyalty(customer->getId(), customer->getPoints(), newLevel)) {
+        cout << " [Success] Loyalty points updated in database.\n";
+        
+        if (oldLevel != newLevel) {
+            sqlite3* db = DatabaseManager::getInstance()->getDB();
+            std::string histSql = "INSERT INTO MembershipHistory (user_id, old_level, new_level, points_at_change) VALUES (?, ?, ?, ?);";
+            sqlite3_stmt* histStmt;
+
+            if (sqlite3_prepare_v2(db, histSql.c_str(), -1, &histStmt, NULL) == SQLITE_OK) {
+                sqlite3_bind_int(histStmt, 1, customer->getId());
+                sqlite3_bind_text(histStmt, 2, oldLevel.c_str(), -1, SQLITE_TRANSIENT);
+                sqlite3_bind_text(histStmt, 3, newLevel.c_str(), -1, SQLITE_TRANSIENT);
+                sqlite3_bind_int(histStmt, 4, customer->getPoints());
+
+                sqlite3_step(histStmt);
+                sqlite3_finalize(histStmt);
+            }
+            cout << " [Info] Level changed from " << oldLevel << " to " << newLevel << ".\n";
+        }
+    } else {
+        cout << " [Error] Failed to update customer loyalty in database.\n";
+    }
+
+    delete customer;
+    pauseProgram();
+}
+
+void adminApplyInactivityDowngrade(UserDAO& userDAO) {
+    cout << "\n===== Apply Inactivity Downgrade =====\n";
+    cout << "Enter days of inactivity threshold (e.g., 30): ";
+    int days = readInt();
+    cout << "Enter loyalty points penalty for inactive users: ";
+    int penalty = readInt();
+
+    if (days <= 0 || penalty < 0) {
+        cout << " [Error] Invalid inputs!\n";
+        pauseProgram();
+        return;
+    }
+
+    cout << " Processing inactivity check and downgrades... Please wait.\n";
+    if (userDAO.downgradeUsersByInactivity(days, penalty)) {
+        cout << " [Success] Inactivity check completed successfully. Inactive users downgraded.\n";
+    } else {
+        cout << " [Error] Something went wrong while applying downgrades.\n";
+    }
+    pauseProgram();
+}
+
+void adminViewMembershipHistory(UserDAO& userDAO) {
+    cout << "\n===== Membership Level Change Logs =====\n";
+    std::vector<UserDAO::MembershipHistoryRecord> history = userDAO.getMembershipHistory();
+
+    if (history.empty()) {
+        cout << " No level change history found.\n";
+    } else {
+        printf("%-5s | %-8s | %-15s | %-12s | %-12s | %-8s | %-19s\n",
+               "LogID", "UserID", "Customer Name", "Old Level", "New Level", "Points", "Changed At");
+        cout << std::string(90, '-') << "\n";
+
+        for (size_t i = 0; i < history.size(); i++) {
+            printf("%-5d | %-8d | %-15s | %-12s | %-12s | %-8d | %-19s\n",
+                   history[i].id,
+                   history[i].userId,
+                   history[i].userName.c_str(),
+                   history[i].oldLevel.c_str(),
+                   history[i].newLevel.c_str(),
+                   history[i].pointsAtChange,
+                   history[i].changedAt.c_str());
+        }
+    }
+    pauseProgram();
+}
+
+void showMembershipLevelStats(UserDAO& userDAO) {
+    cout << "\n===== User Count by Membership Level =====\n";
+    std::map<std::string, int> stats = userDAO.getCustomerCountByLevel();
+
+    cout << " - VIP:      " << stats["VIP"] << " users\n";
+    cout << " - Gold:     " << stats["Gold"] << " users\n";
+    cout << " - Silver:   " << stats["Silver"] << " users\n";
+    cout << " - Normal:   " << stats["Normal"] << " users\n";
+    cout << "==========================================\n";
+    pauseProgram();
 }
 
 void managerPanel(User* currentUser) {
