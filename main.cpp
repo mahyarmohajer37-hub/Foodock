@@ -77,6 +77,8 @@ void managerUpdateRestaurantInfoMenu(RestaurantDAO& restaurantDAO, Restaurant& m
 void managerUpdateOrderStatusMenu(OrderDAO& orderDAO, Restaurant& myRestaurant);
 
 void customerPanel(User* currentUser);
+double calculateCartTotal(vector<OrderItem>& cart);
+int calculateCartPreviewPoints(vector<OrderItem>& cart, Customer* customer);
 
 int main() {
     DatabaseManager* db = DatabaseManager::getInstance();
@@ -1208,6 +1210,7 @@ void managerUpdateOrderStatusMenu(OrderDAO& orderDAO, Restaurant& myRestaurant) 
 }
 
 void customerPanel(User* currentUser) {
+    UserDAO userDAO;
     MenuItemDAO menuItemDAO;
     OrderDAO orderDAO;
     OrderItemDAO orderItemDAO;
@@ -1215,6 +1218,33 @@ void customerPanel(User* currentUser) {
 
     vector<OrderItem> cart;
     int cartRestaurantId = 0;
+
+    Customer* customerInfo = userDAO.getCustomerById(currentUser->getId());
+    if (customerInfo != nullptr) {
+        cout << "\n===== Membership Status =====\n";
+        cout << " Level: " << customerInfo->getLevelName() << endl;
+        cout << " Points: " << customerInfo->getPoints() << endl;
+
+        int nextPoints = 0;
+        if (customerInfo->getLevelName() == "Normal") {
+            nextPoints = 100 - customerInfo->getPoints();
+        } else if (customerInfo->getLevelName() == "Silver") {
+            nextPoints = 250 - customerInfo->getPoints();
+        } else if (customerInfo->getLevelName() == "Gold") {
+            nextPoints = 500 - customerInfo->getPoints();
+        } else {
+            nextPoints = 0;
+        }
+
+        if (nextPoints > 0) {
+            cout << " Points needed for next level: " << nextPoints << endl;
+        } else {
+            cout << " You are at the highest level." << endl;
+        }
+
+        cout << "=============================\n";
+        delete customerInfo;
+    }
 
     int choice;
     do {
@@ -1257,10 +1287,14 @@ void customerPanel(User* currentUser) {
             do {
                 cout << "\n===== Shopping Cart =====\n";
 
+                Customer* customer = userDAO.getCustomerById(currentUser->getId());
+
                 if (cart.empty()) {
                     cout << " Cart is empty.\n";
+                    cout << " Preview Earned Points: 0\n";
                 } else {
-                    double total = 0.0;
+                    double total = calculateCartTotal(cart);
+                    int previewPoints = calculateCartPreviewPoints(cart, customer);
 
                     cout << " Restaurant ID: " << cartRestaurantId << endl;
                     cout << " Items:\n";
@@ -1269,7 +1303,6 @@ void customerPanel(User* currentUser) {
                         MenuItem item = menuItemDAO.getMenuItemById(cart[i].getMenuItemId());
 
                         double subtotal = cart[i].getPrice() * cart[i].getQuantity();
-                        total += subtotal;
 
                         cout << " " << i + 1 << ". "
                              << "Item ID: " << cart[i].getMenuItemId()
@@ -1282,7 +1315,10 @@ void customerPanel(User* currentUser) {
 
                     cout << "--------------------------------\n";
                     cout << " Cart Total Price: " << total << endl;
+                    cout << " Preview Earned Points: " << previewPoints << endl;
                 }
+
+                delete customer;
 
                 cout << "\nShopping Cart Menu:\n";
                 cout << "1. Add item to cart\n";
@@ -1389,13 +1425,23 @@ void customerPanel(User* currentUser) {
                         cart.push_back(oi);
                     }
 
-                    double total = 0.0;
-                    for (size_t i = 0; i < cart.size(); i++) {
-                        total += cart[i].getPrice() * cart[i].getQuantity();
+                    Customer* customer = userDAO.getCustomerById(currentUser->getId());
+                    double total = calculateCartTotal(cart);
+                    int previewPoints = calculateCartPreviewPoints(cart, customer);
+                    int addedItemPoints = 0;
+
+                    if (customer != NULL) {
+                        addedItemPoints = static_cast<int>(
+                            item.getPrice() * qty * customer->getPointMultiplier()
+                        );
                     }
 
                     cout << " Item added to cart successfully.\n";
+                    cout << " Added Item Preview Points: " << addedItemPoints << endl;
                     cout << " Current Cart Total Price: " << total << endl;
+                    cout << " Preview Earned Points: " << previewPoints << endl;
+
+                    delete customer;
 
                     pauseProgram();
                     break;
@@ -1446,12 +1492,14 @@ void customerPanel(User* currentUser) {
                         cout << " Item not found in cart.\n";
                     }
 
-                    double total = 0.0;
-                    for (size_t i = 0; i < cart.size(); i++) {
-                        total += cart[i].getPrice() * cart[i].getQuantity();
-                    }
+                    Customer* customer = userDAO.getCustomerById(currentUser->getId());
+                    double total = calculateCartTotal(cart);
+                    int previewPoints = calculateCartPreviewPoints(cart, customer);
 
                     cout << " Current Cart Total Price: " << total << endl;
+                    cout << " Preview Earned Points: " << previewPoints << endl;
+
+                    delete customer;
 
                     pauseProgram();
                     break;
@@ -1463,6 +1511,7 @@ void customerPanel(User* currentUser) {
 
                     cout << " Cart cleared successfully.\n";
                     cout << " Current Cart Total Price: 0\n";
+                    cout << " Preview Earned Points: 0\n";
 
                     pauseProgram();
                     break;
@@ -1494,10 +1543,24 @@ void customerPanel(User* currentUser) {
                 break;
             }
 
-            double total = 0.0;
+            double basePrice = calculateCartTotal(cart);
 
-            for (size_t i = 0; i < cart.size(); i++) {
-                total += cart[i].getPrice() * cart[i].getQuantity();
+            Customer* customer = userDAO.getCustomerById(currentUser->getId());
+
+            double discountAmount = 0.0;
+            double shippingCost = 0.0;
+            double finalPrice = basePrice;
+            int earnedPoints = 0;
+
+            if (customer != nullptr) {
+                discountAmount = basePrice * customer->getDiscountPercent();
+                double discountedPrice = basePrice - discountAmount;
+                shippingCost = customer->calculateShippingCost(10000, discountedPrice);
+                finalPrice = discountedPrice + shippingCost;
+
+                earnedPoints = static_cast<int>(
+                    finalPrice * customer->getPointMultiplier()
+                );
             }
 
             cout << "\n===== Final Order Preview =====\n";
@@ -1513,12 +1576,22 @@ void customerPanel(User* currentUser) {
             }
 
             cout << "--------------------------------\n";
-            cout << "Total Price: " << total << endl;
+            cout << "Base Price: " << basePrice << endl;
+            cout << "Discount Amount: " << discountAmount << endl;
+            cout << "Shipping Cost: " << shippingCost << endl;
+            cout << "Total Price: " << finalPrice << endl;
+
+            if (customer != nullptr) {
+                cout << "Estimated Earned Points: " << earnedPoints << endl;
+                cout << "Current Loyalty Points: " << customer->getPoints() << endl;
+                cout << "Membership Level: " << customer->getLevelName() << endl;
+            }
 
             int confirm = readZeroOne("Finalize this order? (1 = Yes, 0 = No): ");
 
             if (confirm != 1) {
                 cout << " Order finalization cancelled.\n";
+                delete customer;
                 pauseProgram();
                 break;
             }
@@ -1528,16 +1601,15 @@ void customerPanel(User* currentUser) {
             Order order;
             order.setCustomerId(currentUser->getId());
             order.setRestaurantId(cartRestaurantId);
-            order.setTotalPrice(total);
-
+            order.setTotalPrice(finalPrice);
             order.setStatus("Preparing");
-
             order.setOrderDate(orderDate);
 
             int orderId = orderDAO.addOrderAndReturnId(order);
 
             if (orderId == -1) {
                 cout << " Failed to place order.\n";
+                delete customer;
                 pauseProgram();
                 break;
             }
@@ -1549,13 +1621,17 @@ void customerPanel(User* currentUser) {
 
                 if (!orderItemDAO.addOrderItem(cart[i])) {
                     ok = false;
+                    break;
                 }
             }
 
             if (ok) {
+                orderDAO.applyCustomerLoyaltyAfterOrder(order);
+
                 cout << " Order finalized successfully.\n";
                 cout << " Order ID: " << orderId << endl;
-                cout << " Total Price: " << total << endl;
+                cout << " Final Paid Amount: " << finalPrice << endl;
+                cout << " Points Earned: " << earnedPoints << endl;
 
                 cart.clear();
                 cartRestaurantId = 0;
@@ -1563,9 +1639,11 @@ void customerPanel(User* currentUser) {
                 cout << " Cart is now empty.\n";
             } else {
                 cout << " Order was created, but some items failed to save.\n";
+                cout << " Loyalty points were not applied.\n";
                 cout << " Cart was not cleared so you can try again or check the database.\n";
             }
 
+            delete customer;
             pauseProgram();
             break;
         }
@@ -1617,4 +1695,32 @@ void customerPanel(User* currentUser) {
         }
 
     } while (choice != 0);
+}
+
+double calculateCartTotal(vector<OrderItem>& cart) {
+    double total = 0.0;
+
+    for (size_t i = 0; i < cart.size(); i++) {
+        total += cart[i].getPrice() * cart[i].getQuantity();
+    }
+
+    return total;
+}
+
+int calculateCartPreviewPoints(vector<OrderItem>& cart, Customer* customer) {
+    if (customer == NULL || cart.empty()) {
+        return 0;
+    }
+
+    int previewPoints = 0;
+
+    for (size_t i = 0; i < cart.size(); i++) {
+        double subtotal = cart[i].getPrice() * cart[i].getQuantity();
+
+        previewPoints += static_cast<int>(
+            subtotal * customer->getPointMultiplier()
+        );
+    }
+
+    return previewPoints;
 }
