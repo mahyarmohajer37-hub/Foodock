@@ -8,6 +8,7 @@ MenuItem::MenuItem() {
     price = 0;
     available = 1;
     description = "";
+    isSpecial = 0;
 }
 
 MenuItem::MenuItem(int id,
@@ -16,7 +17,8 @@ MenuItem::MenuItem(int id,
                    std::string category,
                    double price,
                    int available,
-                   std::string description) {
+                   std::string description,
+                   int isSpecial) {
     this->id = id;
     this->restaurantId = restaurantId;
     this->name = name;
@@ -24,6 +26,7 @@ MenuItem::MenuItem(int id,
     this->price = price;
     this->available = available;
     this->description = description;
+    this->isSpecial = isSpecial;
 }
 
 void MenuItem::setId(int id) {
@@ -54,6 +57,10 @@ void MenuItem::setDescription(std::string description) {
     this->description = description;
 }
 
+void MenuItem::setIsSpecial(int isSpecial) {
+    this->isSpecial = isSpecial;
+}
+
 int MenuItem::getId() {
     return id;
 }
@@ -80,4 +87,8 @@ int MenuItem::getAvailable() {
 
 std::string MenuItem::getDescription() {
     return description;
+}
+
+int MenuItem::getIsSpecial() const {
+    return isSpecial;
 }
