@@ -82,6 +82,7 @@ void managerPanel(User* currentUser);
 Restaurant getManagerRestaurant(int managerId);
 void managerAddMenuItemMenu(MenuItemDAO& menuItemDAO, Restaurant& myRestaurant);
 void managerUpdateMenuItemMenu(MenuItemDAO& menuItemDAO, Restaurant& myRestaurant);
+int readCategoryChoice(const string& prompt);
 void managerDeleteMenuItemMenu(MenuItemDAO& menuItemDAO, Restaurant& myRestaurant);
 void managerUpdateRestaurantInfoMenu(RestaurantDAO& restaurantDAO, Restaurant& myRestaurant, User* currentUser);
 void managerUpdateOrderStatusMenu(OrderDAO& orderDAO, Restaurant& myRestaurant);
@@ -1058,12 +1059,42 @@ void managerAddMenuItemMenu(MenuItemDAO& menuItemDAO, Restaurant& myRestaurant) 
             MenuItem item;
             item.setRestaurantId(myRestaurant.getId());
             item.setName(readNonEmptyString(" Enter item name: "));
-            item.setCategory(readNonEmptyString(" Enter category: "));
+
+            cout << " Select category:\n";
+            cout << " 1. Appetizer\n";
+            cout << " 2. Main Course\n";
+            cout << " 3. Dessert\n";
+            cout << " 4. Drink\n";
+
+            int categoryChoice = readCategoryChoice(" Enter your choice (1-4): ");
+
+            if (categoryChoice == 1) {
+                item.setCategory("appetizer");
+                item.setPrepTime(readPositiveInt(" Enter preparation time: "));
+                item.setWeight(readPositiveDouble(" Enter weight: "));
+                item.setVolume(0);
+            }
+            else if (categoryChoice == 2) {
+                item.setCategory("main course");
+                item.setPrepTime(readPositiveInt(" Enter preparation time: "));
+                item.setWeight(readPositiveDouble(" Enter weight: "));
+                item.setVolume(0);
+            }
+            else if (categoryChoice == 3) {
+                item.setCategory("dessert");
+                item.setPrepTime(readPositiveInt(" Enter preparation time: "));
+                item.setWeight(readPositiveDouble(" Enter weight: "));
+                item.setVolume(0);
+            }
+            else if (categoryChoice == 4) {
+                item.setCategory("drink");
+                item.setPrepTime(readPositiveInt(" Enter preparation time: "));
+                item.setVolume(readPositiveDouble(" Enter volume: "));
+                item.setWeight(0);
+            }
 
             item.setPrice(readPositiveDouble(" Enter price: "));
-
             item.setAvailable(readZeroOne(" Enter available (1/0): "));
-
             item.setDescription(readNonEmptyString(" Enter description: "));
             item.setIsSpecial(readZeroOne(" Enter is special (1/0): "));
 
@@ -1116,12 +1147,42 @@ void managerUpdateMenuItemMenu(MenuItemDAO& menuItemDAO, Restaurant& myRestauran
             }
 
             item.setName(readNonEmptyString(" Enter new name: "));
-            item.setCategory(readNonEmptyString(" Enter new category: "));
+
+            cout << " Select new category:\n";
+            cout << " 1. Appetizer\n";
+            cout << " 2. Main Course\n";
+            cout << " 3. Dessert\n";
+            cout << " 4. Drink\n";
+
+            int categoryChoice = readCategoryChoice(" Enter your choice (1-4): ");
+
+            if (categoryChoice == 1) {
+                item.setCategory("appetizer");
+                item.setPrepTime(readPositiveInt(" Enter new preparation time: "));
+                item.setWeight(readPositiveDouble(" Enter new weight: "));
+                item.setVolume(0);
+            }
+            else if (categoryChoice == 2) {
+                item.setCategory("main course");
+                item.setPrepTime(readPositiveInt(" Enter new preparation time: "));
+                item.setWeight(readPositiveDouble(" Enter new weight: "));
+                item.setVolume(0);
+            }
+            else if (categoryChoice == 3) {
+                item.setCategory("dessert");
+                item.setPrepTime(readPositiveInt(" Enter new preparation time: "));
+                item.setWeight(readPositiveDouble(" Enter new weight: "));
+                item.setVolume(0);
+            }
+            else if (categoryChoice == 4) {
+                item.setCategory("drink");
+                item.setPrepTime(readPositiveInt(" Enter new preparation time: "));
+                item.setVolume(readPositiveDouble(" Enter new volume: "));
+                item.setWeight(0);
+            }
 
             item.setPrice(readPositiveDouble(" Enter new price: "));
-
-            item.setAvailable(readPositiveInt(" Enter available (1/0): "));
-
+            item.setAvailable(readZeroOne(" Enter available (1/0): "));
             item.setDescription(readNonEmptyString(" Enter new description: "));
             item.setIsSpecial(readZeroOne(" Enter new is special (1/0): "));
 
@@ -1143,6 +1204,21 @@ void managerUpdateMenuItemMenu(MenuItemDAO& menuItemDAO, Restaurant& myRestauran
         }
     } while (choice != 0);
 }
+
+
+int readCategoryChoice(const string& prompt) {
+    int value;
+    while (true) {
+        cout << prompt;
+        value = readInt();
+
+        if (value >= 1 && value <= 4)
+            return value;
+
+        cout << " Invalid input. Please enter a number between 1 and 4.\n";
+    }
+}
+
 
 void managerDeleteMenuItemMenu(MenuItemDAO& menuItemDAO, Restaurant& myRestaurant) {
     int choice;
@@ -1460,7 +1536,7 @@ void customerPanel(User* currentUser) {
             pauseProgram();
             break;
 
-        case 2: {
+                case 2: {
             showAllRestaurants(restaurantDAO);
 
             int restaurantId = readPositiveInt(" Enter restaurant ID: ");
@@ -1498,6 +1574,9 @@ void customerPanel(User* currentUser) {
                          << " | Name: " << items[i].getName()
                          << " | Category: " << items[i].getCategory()
                          << " | Price: " << items[i].getPrice()
+                         << " | Prep Time: " << items[i].getPrepTime()
+                         << " | Weight: " << items[i].getWeight()
+                         << " | Volume: " << items[i].getVolume()
                          << " | Available: "
                          << (items[i].getAvailable() ? "yes" : "no")
                          << " | Description: "
