@@ -21,58 +21,18 @@ Coupon::Coupon(int id, int userId, string code, double discountPercent,
     this->isUsed = isUsed;
 }
 
-int Coupon::getId() {
-    return id;
-}
+int Coupon::getId() { return id; }
+int Coupon::getUserId() { return userId; }
+string Coupon::getCode() { return code; }
+double Coupon::getDiscountPercent() { return discountPercent; }
+string Coupon::getIssuedAt() { return issuedAt; }
+string Coupon::getExpiresAt() { return expiresAt; }
+bool Coupon::getIsUsed() { return isUsed; }
 
-int Coupon::getUserId() {
-    return userId;
-}
-
-string Coupon::getCode() {
-    return code;
-}
-
-double Coupon::getDiscountPercent() {
-    return discountPercent;
-}
-
-string Coupon::getIssuedAt() {
-    return issuedAt;
-}
-
-string Coupon::getExpiresAt() {
-    return expiresAt;
-}
-
-bool Coupon::getIsUsed() {
-    return isUsed;
-}
-
-void Coupon::setId(int id) {
-    this->id = id;
-}
-
-void Coupon::setUserId(int userId) {
-    this->userId = userId;
-}
-
-void Coupon::setCode(string code) {
-    this->code = code;
-}
-
-void Coupon::setDiscountPercent(double discountPercent) {
-    this->discountPercent = discountPercent;
-}
-
-void Coupon::setIssuedAt(string issuedAt) {
-    this->issuedAt = issuedAt;
-}
-
-void Coupon::setExpiresAt(string expiresAt) {
-    this->expiresAt = expiresAt;
-}
-
-void Coupon::setIsUsed(bool isUsed) {
-    this->isUsed = isUsed;
-}
+void Coupon::setId(int id) { this->id = id; }
+void Coupon::setUserId(int userId) { this->userId = userId; }
+void Coupon::setCode(string code) { this->code = code; }
+void Coupon::setDiscountPercent(double discountPercent) { this->discountPercent = discountPercent; }
+void Coupon::setIssuedAt(string issuedAt) { this->issuedAt = issuedAt; }
+void Coupon::setExpiresAt(string expiresAt) { this->expiresAt = expiresAt; }
+void Coupon::setIsUsed(bool isUsed) { this->isUsed = isUsed; }

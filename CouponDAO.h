@@ -15,6 +15,7 @@ public:
 
     Coupon getCouponById(int id);
     Coupon getUnusedCouponByUserId(int userId);
+    int getUnusedCouponsCountByUserId(int userId);
     Coupon getValidCouponByCode(int userId, const string& code);
 
     bool markCouponUsed(int couponId);

@@ -121,7 +121,7 @@ Coupon CouponDAO::getUnusedCouponByUserId(int userId) {
     string sql = "SELECT id, user_id, code, discount_percent, issued_at, expires_at, is_used "
                  "FROM Coupons "
                  "WHERE user_id = ? AND is_used = 0 "
-                 "AND (expires_at IS NULL OR expires_at >= CURRENT_TIMESTAMP) "
+                 "AND (expires_at IS NULL OR expires_at = '' OR expires_at >= CURRENT_TIMESTAMP) "
                  "ORDER BY id LIMIT 1;";
 
     sqlite3_stmt* stmt;
@@ -153,6 +153,32 @@ Coupon CouponDAO::getUnusedCouponByUserId(int userId) {
     return coupon;
 }
 
+int CouponDAO::getUnusedCouponsCountByUserId(int userId) {
+    sqlite3* db = DatabaseManager::getInstance()->getDB();
+    sqlite3_stmt* stmt;
+    int count = 0;
+
+    string sql = "SELECT COUNT(*) FROM Coupons "
+                 "WHERE user_id = ? AND is_used = 0 "
+                 "AND (expires_at IS NULL OR expires_at = '' OR expires_at >= CURRENT_TIMESTAMP);";
+
+    int result = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
+
+    if (result != SQLITE_OK) {
+        cout << "Error counting coupons: " << sqlite3_errmsg(db) << endl;
+        return 0;
+    }
+
+    sqlite3_bind_int(stmt, 1, userId);
+
+    if (sqlite3_step(stmt) == SQLITE_ROW) {
+        count = sqlite3_column_int(stmt, 0);
+    }
+
+    sqlite3_finalize(stmt);
+    return count;
+}
+
 Coupon CouponDAO::getValidCouponByCode(int userId, const string& code) {
     sqlite3* db = DatabaseManager::getInstance()->getDB();
     Coupon coupon;
@@ -160,7 +186,7 @@ Coupon CouponDAO::getValidCouponByCode(int userId, const string& code) {
     string sql = "SELECT id, user_id, code, discount_percent, issued_at, expires_at, is_used "
                  "FROM Coupons "
                  "WHERE user_id = ? AND code = ? AND is_used = 0 "
-                 "AND (expires_at IS NULL OR expires_at >= CURRENT_TIMESTAMP);";
+                 "AND (expires_at IS NULL OR expires_at = '' OR expires_at >= CURRENT_TIMESTAMP);";
 
     sqlite3_stmt* stmt;
     int result = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
