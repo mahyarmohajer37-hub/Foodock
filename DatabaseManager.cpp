@@ -81,6 +81,9 @@ void DatabaseManager::createTables() {
         "available INTEGER NOT NULL DEFAULT 1, "
         "description TEXT, "
         "is_special INTEGER NOT NULL DEFAULT 0, "
+        "prep_time INTEGER NOT NULL DEFAULT 0, "
+        "weight REAL NOT NULL DEFAULT 0, "
+        "volume REAL NOT NULL DEFAULT 0, "
         "FOREIGN KEY(restaurant_id) REFERENCES Restaurants(id)"
         ");";
 
@@ -179,7 +182,6 @@ void DatabaseManager::createTables() {
         errMsg = 0;
     }
 
-
     sqlite3_exec(
         db,
         "ALTER TABLE Users ADD COLUMN points INTEGER NOT NULL DEFAULT 0;",
@@ -195,6 +197,24 @@ void DatabaseManager::createTables() {
     sqlite3_exec(
         db,
         "ALTER TABLE MenuItems ADD COLUMN is_special INTEGER NOT NULL DEFAULT 0;",
+        NULL, NULL, NULL
+    );
+
+    sqlite3_exec(
+        db,
+        "ALTER TABLE MenuItems ADD COLUMN prep_time INTEGER NOT NULL DEFAULT 0;",
+        NULL, NULL, NULL
+    );
+
+    sqlite3_exec(
+        db,
+        "ALTER TABLE MenuItems ADD COLUMN weight REAL NOT NULL DEFAULT 0;",
+        NULL, NULL, NULL
+    );
+
+    sqlite3_exec(
+        db,
+        "ALTER TABLE MenuItems ADD COLUMN volume REAL NOT NULL DEFAULT 0;",
         NULL, NULL, NULL
     );
 
