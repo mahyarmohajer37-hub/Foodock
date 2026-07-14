@@ -1,52 +1,41 @@
 #include "DatabaseManager.h"
 #include <iostream>
+#include <string>
 
-DatabaseManager* DatabaseManager::instance = nullptr;
+using namespace std;
+
+DatabaseManager* DatabaseManager::instance = NULL;
 
 DatabaseManager::DatabaseManager() {
     int rc = sqlite3_open("Foodock.db", &db);
 
     if (rc != SQLITE_OK) {
-        std::cout << "Error opening DB: "
-                  << sqlite3_errmsg(db)
-                  << std::endl;
-
-        db = nullptr;
-        return;
+        cout << "Cannot open database: " << sqlite3_errmsg(db) << endl;
+        db = NULL;
+    } else {
+        cout << "Database opened successfully." << endl;
+        createTables();
     }
+}
 
-    char* errMsg = 0;
-
-    if (sqlite3_exec(
-            db,
-            "PRAGMA foreign_keys = ON;",
-            NULL,
-            NULL,
-            &errMsg
-        ) != SQLITE_OK) {
-
-        std::cout << "Error enabling foreign keys: "
-                  << errMsg
-                  << std::endl;
-
-        sqlite3_free(errMsg);
+DatabaseManager::~DatabaseManager() {
+    if (db != NULL) {
+        sqlite3_close(db);
+        db = NULL;
     }
-
-    createTables();
 }
 
 DatabaseManager* DatabaseManager::getInstance() {
-    if (instance == nullptr) {
+    if (instance == NULL) {
         instance = new DatabaseManager();
     }
-
     return instance;
 }
 
 void DatabaseManager::releaseInstance() {
-    if (instance != nullptr) {
+    if (instance != NULL) {
         delete instance;
-        instance = nullptr;
+        instance = NULL;
     }
 }
 
@@ -56,8 +45,9 @@ sqlite3* DatabaseManager::getDB() {
 
 void DatabaseManager::createTables() {
     char* errMsg = 0;
+    int rc;
 
-    std::string createUsersTable =
+    string createUsersTable =
         "CREATE TABLE IF NOT EXISTS Users ("
         "id INTEGER PRIMARY KEY AUTOINCREMENT, "
         "name TEXT NOT NULL, "
@@ -68,7 +58,7 @@ void DatabaseManager::createTables() {
         "level_current TEXT NOT NULL DEFAULT 'Normal'"
         ");";
 
-    std::string createRestaurantsTable =
+    string createRestaurantsTable =
         "CREATE TABLE IF NOT EXISTS Restaurants ("
         "id INTEGER PRIMARY KEY AUTOINCREMENT, "
         "name TEXT NOT NULL, "
@@ -81,7 +71,7 @@ void DatabaseManager::createTables() {
         "FOREIGN KEY(manager_id) REFERENCES Users(id)"
         ");";
 
-    std::string createMenuItemsTable =
+    string createMenuItemsTable =
         "CREATE TABLE IF NOT EXISTS MenuItems ("
         "id INTEGER PRIMARY KEY AUTOINCREMENT, "
         "restaurant_id INTEGER NOT NULL, "
@@ -90,10 +80,11 @@ void DatabaseManager::createTables() {
         "price REAL NOT NULL, "
         "available INTEGER NOT NULL DEFAULT 1, "
         "description TEXT, "
+        "is_special INTEGER NOT NULL DEFAULT 0, "
         "FOREIGN KEY(restaurant_id) REFERENCES Restaurants(id)"
         ");";
 
-    std::string createOrdersTable =
+    string createOrdersTable =
         "CREATE TABLE IF NOT EXISTS Orders ("
         "id INTEGER PRIMARY KEY AUTOINCREMENT, "
         "customer_id INTEGER NOT NULL, "
@@ -105,7 +96,7 @@ void DatabaseManager::createTables() {
         "FOREIGN KEY(restaurant_id) REFERENCES Restaurants(id)"
         ");";
 
-    std::string createOrderItemsTable =
+    string createOrderItemsTable =
         "CREATE TABLE IF NOT EXISTS OrderItems ("
         "id INTEGER PRIMARY KEY AUTOINCREMENT, "
         "order_id INTEGER NOT NULL, "
@@ -116,7 +107,7 @@ void DatabaseManager::createTables() {
         "FOREIGN KEY(menu_item_id) REFERENCES MenuItems(id)"
         ");";
 
-    std::string createMembershipHistoryTable =
+    string createMembershipHistoryTable =
         "CREATE TABLE IF NOT EXISTS MembershipHistory ("
         "id INTEGER PRIMARY KEY AUTOINCREMENT, "
         "user_id INTEGER NOT NULL, "
@@ -127,152 +118,110 @@ void DatabaseManager::createTables() {
         "FOREIGN KEY(user_id) REFERENCES Users(id)"
         ");";
 
-    std::string createCouponsTable =
+    string createCouponsTable =
         "CREATE TABLE IF NOT EXISTS Coupons ("
         "id INTEGER PRIMARY KEY AUTOINCREMENT, "
         "user_id INTEGER NOT NULL, "
         "code TEXT UNIQUE NOT NULL, "
         "discount_percent REAL NOT NULL, "
+        "is_used INTEGER NOT NULL DEFAULT 0, "
         "issued_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, "
         "expires_at TEXT, "
-        "is_used INTEGER NOT NULL DEFAULT 0, "
         "FOREIGN KEY(user_id) REFERENCES Users(id)"
         ");";
 
-    if (sqlite3_exec(
-            db,
-            createUsersTable.c_str(),
-            NULL,
-            NULL,
-            &errMsg
-        ) != SQLITE_OK) {
-
-        std::cout << "Error creating Users table: "
-                  << errMsg
-                  << std::endl;
-
+    rc = sqlite3_exec(db, createUsersTable.c_str(), NULL, NULL, &errMsg);
+    if (rc != SQLITE_OK) {
+        cout << "Error creating Users table: " << errMsg << endl;
         sqlite3_free(errMsg);
         errMsg = 0;
     }
 
+    rc = sqlite3_exec(db, createRestaurantsTable.c_str(), NULL, NULL, &errMsg);
+    if (rc != SQLITE_OK) {
+        cout << "Error creating Restaurants table: " << errMsg << endl;
+        sqlite3_free(errMsg);
+        errMsg = 0;
+    }
+
+    rc = sqlite3_exec(db, createMenuItemsTable.c_str(), NULL, NULL, &errMsg);
+    if (rc != SQLITE_OK) {
+        cout << "Error creating MenuItems table: " << errMsg << endl;
+        sqlite3_free(errMsg);
+        errMsg = 0;
+    }
+
+    rc = sqlite3_exec(db, createOrdersTable.c_str(), NULL, NULL, &errMsg);
+    if (rc != SQLITE_OK) {
+        cout << "Error creating Orders table: " << errMsg << endl;
+        sqlite3_free(errMsg);
+        errMsg = 0;
+    }
+
+    rc = sqlite3_exec(db, createOrderItemsTable.c_str(), NULL, NULL, &errMsg);
+    if (rc != SQLITE_OK) {
+        cout << "Error creating OrderItems table: " << errMsg << endl;
+        sqlite3_free(errMsg);
+        errMsg = 0;
+    }
+
+    rc = sqlite3_exec(db, createMembershipHistoryTable.c_str(), NULL, NULL, &errMsg);
+    if (rc != SQLITE_OK) {
+        cout << "Error creating MembershipHistory table: " << errMsg << endl;
+        sqlite3_free(errMsg);
+        errMsg = 0;
+    }
+
+    rc = sqlite3_exec(db, createCouponsTable.c_str(), NULL, NULL, &errMsg);
+    if (rc != SQLITE_OK) {
+        cout << "Error creating Coupons table: " << errMsg << endl;
+        sqlite3_free(errMsg);
+        errMsg = 0;
+    }
+
+
     sqlite3_exec(
         db,
-        "ALTER TABLE Users "
-        "ADD COLUMN points INTEGER NOT NULL DEFAULT 0;",
-        NULL,
-        NULL,
-        NULL
+        "ALTER TABLE Users ADD COLUMN points INTEGER NOT NULL DEFAULT 0;",
+        NULL, NULL, NULL
     );
 
     sqlite3_exec(
         db,
-        "ALTER TABLE Users "
-        "ADD COLUMN level_current TEXT NOT NULL DEFAULT 'Normal';",
-        NULL,
-        NULL,
-        NULL
+        "ALTER TABLE Users ADD COLUMN level_current TEXT NOT NULL DEFAULT 'Normal';",
+        NULL, NULL, NULL
     );
 
-    if (sqlite3_exec(
-            db,
-            createRestaurantsTable.c_str(),
-            NULL,
-            NULL,
-            &errMsg
-        ) != SQLITE_OK) {
+    sqlite3_exec(
+        db,
+        "ALTER TABLE MenuItems ADD COLUMN is_special INTEGER NOT NULL DEFAULT 0;",
+        NULL, NULL, NULL
+    );
 
-        std::cout << "Error creating Restaurants table: "
-                  << errMsg
-                  << std::endl;
+    sqlite3_exec(
+        db,
+        "ALTER TABLE Coupons ADD COLUMN code TEXT;",
+        NULL, NULL, NULL
+    );
 
-        sqlite3_free(errMsg);
-        errMsg = 0;
-    }
+    sqlite3_exec(
+        db,
+        "ALTER TABLE Coupons ADD COLUMN expires_at TEXT;",
+        NULL, NULL, NULL
+    );
 
-    if (sqlite3_exec(
-            db,
-            createMenuItemsTable.c_str(),
-            NULL,
-            NULL,
-            &errMsg
-        ) != SQLITE_OK) {
+    sqlite3_exec(
+        db,
+        "UPDATE Coupons "
+        "SET code = 'COUPON20-' || id "
+        "WHERE code IS NULL OR code = '';",
+        NULL, NULL, NULL
+    );
 
-        std::cout << "Error creating MenuItems table: "
-                  << errMsg
-                  << std::endl;
-
-        sqlite3_free(errMsg);
-        errMsg = 0;
-    }
-
-    if (sqlite3_exec(
-            db,
-            createOrdersTable.c_str(),
-            NULL,
-            NULL,
-            &errMsg
-        ) != SQLITE_OK) {
-
-        std::cout << "Error creating Orders table: "
-                  << errMsg
-                  << std::endl;
-
-        sqlite3_free(errMsg);
-        errMsg = 0;
-    }
-
-    if (sqlite3_exec(
-            db,
-            createOrderItemsTable.c_str(),
-            NULL,
-            NULL,
-            &errMsg
-        ) != SQLITE_OK) {
-
-        std::cout << "Error creating OrderItems table: "
-                  << errMsg
-                  << std::endl;
-
-        sqlite3_free(errMsg);
-        errMsg = 0;
-    }
-
-    if (sqlite3_exec(
-            db,
-            createMembershipHistoryTable.c_str(),
-            NULL,
-            NULL,
-            &errMsg
-        ) != SQLITE_OK) {
-
-        std::cout << "Error creating MembershipHistory table: "
-                  << errMsg
-                  << std::endl;
-
-        sqlite3_free(errMsg);
-        errMsg = 0;
-    }
-
-    if (sqlite3_exec(
-            db,
-            createCouponsTable.c_str(),
-            NULL,
-            NULL,
-            &errMsg
-        ) != SQLITE_OK) {
-
-        std::cout << "Error creating Coupons table: "
-                  << errMsg
-                  << std::endl;
-
-        sqlite3_free(errMsg);
-        errMsg = 0;
-    }
-}
-
-DatabaseManager::~DatabaseManager() {
-    if (db != nullptr) {
-        sqlite3_close(db);
-        db = nullptr;
-    }
+    sqlite3_exec(
+        db,
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_coupons_code "
+        "ON Coupons(code);",
+        NULL, NULL, NULL
+    );
 }
