@@ -1347,9 +1347,9 @@ void customerPanel(User* currentUser) {
         if (customerInfo->getLevelName() == "Normal") {
             nextPoints = 100 - customerInfo->getPoints();
         } else if (customerInfo->getLevelName() == "Silver") {
-            nextPoints = 250 - customerInfo->getPoints();
+            nextPoints = 300 - customerInfo->getPoints();
         } else if (customerInfo->getLevelName() == "Gold") {
-            nextPoints = 500 - customerInfo->getPoints();
+            nextPoints = 700 - customerInfo->getPoints();
         } else {
             nextPoints = 0;
         }
@@ -1673,7 +1673,7 @@ void customerPanel(User* currentUser) {
             if (customer != nullptr) {
                 discountAmount = basePrice * customer->getDiscountPercent();
                 double discountedPrice = basePrice - discountAmount;
-                shippingCost = customer->calculateShippingCost(10000, discountedPrice);
+                shippingCost = customer->calculateShippingCost(50, discountedPrice);
                 finalPrice = discountedPrice + shippingCost;
 
                 earnedPoints = static_cast<int>(
