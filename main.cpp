@@ -3,6 +3,8 @@
 #include <string>
 #include <limits>
 #include <map>
+#include <algorithm>
+#include <stdexcept>
 
 #include "DatabaseManager.h"
 #include "UserDAO.h"
@@ -88,6 +90,8 @@ void customerPanel(User* currentUser);
 double calculateCartTotal(vector<OrderItem>& cart);
 int calculateCartPreviewPoints(vector<OrderItem>& cart, Customer* customer);
 void initializeUserCoupons();
+bool isNightOrder(Order& order);
+vector<string> getCustomerTitles(vector<Order>& orders);
 
 int main() {
     DatabaseManager* db = DatabaseManager::getInstance();
@@ -958,16 +962,41 @@ void managerPanel(User* currentUser) {
     		break;
         }
 
-        case 5: {
+                case 5: {
             vector<Order> orders = orderDAO.getOrdersByRestaurantId(myRestaurant.getId());
+            UserDAO userDAO;
 
             if (orders.empty()) {
                 cout << " No orders found\n";
             } else {
                 for (size_t i = 0; i < orders.size(); i++) {
+                    Customer* customer = userDAO.getCustomerById(orders[i].getCustomerId());
+                    string customerName = "Unknown";
+                    string customerLevel = "Normal";
+
+                    if (customer != NULL) {
+                        customerName = customer->getName();
+                        customerLevel = customer->getLevelName();
+                    }
+
                     cout << "Order ID: " << orders[i].getId()
-                         << " | Customer ID: " << orders[i].getCustomerId()
-                         << " | Total: " << orders[i].getTotalPrice()
+                         << " | Customer: " << customerName;
+
+                    if (customerLevel == "VIP") {
+                        cout << " | Top Priority";
+                    }
+
+                    vector<Order> custOrders = orderDAO.getOrdersByCustomerId(orders[i].getCustomerId());
+                    vector<string> titles = getCustomerTitles(custOrders);
+
+                    if (!titles.empty()) {
+                        cout << " | Titles: ";
+                        for (size_t t = 0; t < titles.size(); ++t) {
+                            cout << titles[t] << (t == titles.size() - 1 ? "" : ", ");
+                        }
+                    }
+
+                    cout << " | Total: " << orders[i].getTotalPrice()
                          << " | Status: " << orders[i].getStatus()
                          << " | Date: " << orders[i].getOrderDate()
                          << endl;
@@ -979,11 +1008,14 @@ void managerPanel(User* currentUser) {
                              << " | Price: " << items[j].getPrice()
                              << endl;
                     }
+
+                    delete customer;
                 }
             }
             pauseProgram();
             break;
         }
+
         
         case 6: {
             managerUpdateRestaurantInfoMenu(restaurantDAO, myRestaurant, currentUser);
@@ -1369,7 +1401,6 @@ void managerUpdateOrderStatusMenu(OrderDAO& orderDAO, Restaurant& myRestaurant) 
         }
     } while (choice != 0);
 }
-
 
 void customerPanel(User* currentUser) {
     UserDAO userDAO;
@@ -1977,7 +2008,7 @@ void customerPanel(User* currentUser) {
             break;
         }
 
-        case 5: {
+                case 5: {
             vector<Order> orders =
                 orderDAO.getOrdersByCustomerId(
                     currentUser->getId());
@@ -1986,6 +2017,7 @@ void customerPanel(User* currentUser) {
                 cout << "You have no orders.\n";
             } else {
                 cout << "\n===== My Orders =====\n";
+                vector<string> titles = getCustomerTitles(orders);
 
                 for (size_t i = 0; i < orders.size(); i++) {
                     cout << "Order ID: "
@@ -1999,6 +2031,14 @@ void customerPanel(User* currentUser) {
                          << " | Date: "
                          << orders[i].getOrderDate()
                          << endl;
+
+                    if (!titles.empty()) {
+                        cout << " Titles: ";
+                        for (size_t t = 0; t < titles.size(); ++t) {
+                            cout << titles[t] << (t == titles.size() - 1 ? "" : ", ");
+                        }
+                        cout << endl;
+                    }
 
                     vector<OrderItem> items =
                         orderItemDAO.getItemsByOrderId(
@@ -2030,6 +2070,7 @@ void customerPanel(User* currentUser) {
             pauseProgram();
             break;
         }
+
 
         case 0:
             cout << "Logging out...\n";
@@ -2121,4 +2162,43 @@ void initializeUserCoupons() {
 
         sqlite3_finalize(stmt);
     }
+}
+
+bool isNightOrder(Order& order) {
+    const std::string& orderDate = order.getOrderDate();
+    size_t spacePos = orderDate.find(' ');
+    if (spacePos == std::string::npos || orderDate.length() < spacePos + 3) {
+        return false;
+    }
+
+    try {
+        int hour = std::stoi(orderDate.substr(spacePos + 1, 2));
+        return (hour >= 23 || hour < 3);
+    } catch (const std::invalid_argument&) {
+        return false;
+    } catch (const std::out_of_range&) {
+        return false;
+    }
+}
+
+vector<string> getCustomerTitles(vector<Order>& orders) {
+    vector<string> titles;
+
+    if (orders.size() >= 3) {
+        titles.push_back("Frequent Buyer");
+    }
+
+    bool foundNightOrder = false;
+    for (size_t i = 0; i < orders.size(); i++) {
+        if (isNightOrder(orders[i])) {
+            foundNightOrder = true;
+            break;
+        }
+    }
+
+    if (foundNightOrder) {
+        titles.push_back("Night Customer");
+    }
+
+    return titles;
 }
