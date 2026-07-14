@@ -18,9 +18,9 @@ public:
     }
 
     static inline MembershipLevel* determineLevelByPoints(int points) {
-        if (points >= 500) {
+        if (points >= 700) {
             return new VipLevel();
-        } else if (points >= 250) {
+        } else if (points >= 300) {
             return new GoldLevel();
         } else if (points >= 100) {
             return new SilverLevel();
