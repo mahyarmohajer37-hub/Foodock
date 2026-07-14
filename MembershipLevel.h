@@ -39,7 +39,7 @@ public:
     double getDiscountPercent() const override { return 0.05; }
     
     double calculateShippingCost(double baseCost, double total) const override {
-        return baseCost * 0.5; 
+        return baseCost; 
     }
     
     double getPointMultiplier() const override { return 1.2; }
@@ -56,7 +56,7 @@ public:
     double getDiscountPercent() const override { return 0.10; } 
     
     double calculateShippingCost(double baseCost, double total) const override {
-        return 0.0; 
+        return baseCost * 0.5; 
     }
     
     double getPointMultiplier() const override { return 1.5; } 
