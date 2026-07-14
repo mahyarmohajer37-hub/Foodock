@@ -1223,6 +1223,7 @@ void managerUpdateRestaurantInfoMenu(RestaurantDAO& restaurantDAO, Restaurant& m
 }
 
 void managerUpdateOrderStatusMenu(OrderDAO& orderDAO, Restaurant& myRestaurant) {
+    UserDAO userDAO;
     int choice;
 
     do {
@@ -1242,12 +1243,30 @@ void managerUpdateOrderStatusMenu(OrderDAO& orderDAO, Restaurant& myRestaurant) 
                 cout << "\n===== Orders =====\n";
 
                 for (size_t i = 0; i < orders.size(); i++) {
+                    Customer* customer =
+                        userDAO.getCustomerById(orders[i].getCustomerId());
+
+                    string customerName = "Unknown";
+                    string customerLevel = "Normal";
+
+                    if (customer != NULL) {
+                        customerName = customer->getName();
+                        customerLevel = customer->getLevelName();
+                    }
+
                     cout << "Order ID: " << orders[i].getId()
-                         << " | Customer ID: " << orders[i].getCustomerId()
-                         << " | Total: " << orders[i].getTotalPrice()
+                         << " | Customer: " << customerName;
+
+                    if (customerLevel == "VIP") {
+                        cout << " | Top Priority";
+                    }
+
+                    cout << " | Total: " << orders[i].getTotalPrice()
                          << " | Status: " << orders[i].getStatus()
                          << " | Date: " << orders[i].getOrderDate()
                          << endl;
+
+                    delete customer;
                 }
             }
 
@@ -1267,12 +1286,30 @@ void managerUpdateOrderStatusMenu(OrderDAO& orderDAO, Restaurant& myRestaurant) 
             cout << "\n===== Orders =====\n";
 
             for (size_t i = 0; i < orders.size(); i++) {
+                Customer* customer =
+                    userDAO.getCustomerById(orders[i].getCustomerId());
+
+                string customerName = "Unknown";
+                string customerLevel = "Normal";
+
+                if (customer != NULL) {
+                    customerName = customer->getName();
+                    customerLevel = customer->getLevelName();
+                }
+
                 cout << "Order ID: " << orders[i].getId()
-                     << " | Customer ID: " << orders[i].getCustomerId()
-                     << " | Total: " << orders[i].getTotalPrice()
+                     << " | Customer: " << customerName;
+
+                if (customerLevel == "VIP") {
+                    cout << " | Top Priority";
+                }
+
+                cout << " | Total: " << orders[i].getTotalPrice()
                      << " | Status: " << orders[i].getStatus()
                      << " | Date: " << orders[i].getOrderDate()
                      << endl;
+
+                delete customer;
             }
 
             int orderId = readPositiveInt("\n Enter order ID to update: ");
@@ -1332,6 +1369,7 @@ void managerUpdateOrderStatusMenu(OrderDAO& orderDAO, Restaurant& myRestaurant) 
         }
     } while (choice != 0);
 }
+
 
 void customerPanel(User* currentUser) {
     UserDAO userDAO;
