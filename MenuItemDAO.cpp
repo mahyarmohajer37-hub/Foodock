@@ -8,13 +8,14 @@ bool MenuItemDAO::addMenuItem(MenuItem item) {
     sqlite3* db = DatabaseManager::getInstance()->getDB();
 
     string sql = "INSERT INTO MenuItems "
-                 "(restaurant_id, name, category, price, available, description) VALUES (" +
+                 "(restaurant_id, name, category, price, available, description, is_special) VALUES (" +
                  to_string(item.getRestaurantId()) + ", '" +
                  item.getName() + "', '" +
                  item.getCategory() + "', " +
                  to_string(item.getPrice()) + ", " +
                  to_string(item.getAvailable()) + ", '" +
-                 item.getDescription() + "');";
+                 item.getDescription() + "', " +
+                 to_string(item.getIsSpecial()) + ");";
 
     char* errMsg = 0;
 
@@ -39,7 +40,8 @@ bool MenuItemDAO::updateMenuItem(MenuItem item) {
                  "category='" + item.getCategory() + "', "
                  "price=" + to_string(item.getPrice()) + ", "
                  "available=" + to_string(item.getAvailable()) + ", "
-                 "description='" + item.getDescription() + "' "
+                 "description='" + item.getDescription() + "', "
+                 "is_special=" + to_string(item.getIsSpecial()) + " "
                  "WHERE id=" + to_string(item.getId()) + ";";
 
     char* errMsg = 0;
@@ -97,6 +99,7 @@ vector<MenuItem> MenuItemDAO::getAllMenuItems() {
             item.setPrice(sqlite3_column_double(stmt, 4));
             item.setAvailable(sqlite3_column_int(stmt, 5));
             item.setDescription((char*)sqlite3_column_text(stmt, 6));
+            item.setIsSpecial(sqlite3_column_int(stmt, 7));
 
             items.push_back(item);
         }
@@ -131,6 +134,7 @@ vector<MenuItem> MenuItemDAO::getMenuItemsByRestaurantId(int restaurantId) {
             item.setPrice(sqlite3_column_double(stmt, 4));
             item.setAvailable(sqlite3_column_int(stmt, 5));
             item.setDescription((char*)sqlite3_column_text(stmt, 6));
+            item.setIsSpecial(sqlite3_column_int(stmt, 7));
 
             items.push_back(item);
         }
@@ -161,6 +165,7 @@ MenuItem MenuItemDAO::getMenuItemById(int id) {
             item.setPrice(sqlite3_column_double(stmt, 4));
             item.setAvailable(sqlite3_column_int(stmt, 5));
             item.setDescription((char*)sqlite3_column_text(stmt, 6));
+            item.setIsSpecial(sqlite3_column_int(stmt, 7));
         }
     }
 
