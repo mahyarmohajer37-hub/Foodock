@@ -8,14 +8,17 @@ bool MenuItemDAO::addMenuItem(MenuItem item) {
     sqlite3* db = DatabaseManager::getInstance()->getDB();
 
     string sql = "INSERT INTO MenuItems "
-                 "(restaurant_id, name, category, price, available, description, is_special) VALUES (" +
+                 "(restaurant_id, name, category, price, available, description, is_special, prep_time, weight, volume) VALUES (" +
                  to_string(item.getRestaurantId()) + ", '" +
                  item.getName() + "', '" +
                  item.getCategory() + "', " +
                  to_string(item.getPrice()) + ", " +
                  to_string(item.getAvailable()) + ", '" +
                  item.getDescription() + "', " +
-                 to_string(item.getIsSpecial()) + ");";
+                 to_string(item.getIsSpecial()) + ", " +
+                 to_string(item.getPrepTime()) + ", " +
+                 to_string(item.getWeight()) + ", " +
+                 to_string(item.getVolume()) + ");";
 
     char* errMsg = 0;
 
@@ -41,7 +44,10 @@ bool MenuItemDAO::updateMenuItem(MenuItem item) {
                  "price=" + to_string(item.getPrice()) + ", "
                  "available=" + to_string(item.getAvailable()) + ", "
                  "description='" + item.getDescription() + "', "
-                 "is_special=" + to_string(item.getIsSpecial()) + " "
+                 "is_special=" + to_string(item.getIsSpecial()) + ", "
+                 "prep_time=" + to_string(item.getPrepTime()) + ", "
+                 "weight=" + to_string(item.getWeight()) + ", "
+                 "volume=" + to_string(item.getVolume()) + " "
                  "WHERE id=" + to_string(item.getId()) + ";";
 
     char* errMsg = 0;
@@ -100,6 +106,9 @@ vector<MenuItem> MenuItemDAO::getAllMenuItems() {
             item.setAvailable(sqlite3_column_int(stmt, 5));
             item.setDescription((char*)sqlite3_column_text(stmt, 6));
             item.setIsSpecial(sqlite3_column_int(stmt, 7));
+            item.setPrepTime(sqlite3_column_int(stmt, 8));
+            item.setWeight(sqlite3_column_double(stmt, 9));
+            item.setVolume(sqlite3_column_double(stmt, 10));
 
             items.push_back(item);
         }
@@ -135,6 +144,9 @@ vector<MenuItem> MenuItemDAO::getMenuItemsByRestaurantId(int restaurantId) {
             item.setAvailable(sqlite3_column_int(stmt, 5));
             item.setDescription((char*)sqlite3_column_text(stmt, 6));
             item.setIsSpecial(sqlite3_column_int(stmt, 7));
+            item.setPrepTime(sqlite3_column_int(stmt, 8));
+            item.setWeight(sqlite3_column_double(stmt, 9));
+            item.setVolume(sqlite3_column_double(stmt, 10));
 
             items.push_back(item);
         }
@@ -166,6 +178,9 @@ MenuItem MenuItemDAO::getMenuItemById(int id) {
             item.setAvailable(sqlite3_column_int(stmt, 5));
             item.setDescription((char*)sqlite3_column_text(stmt, 6));
             item.setIsSpecial(sqlite3_column_int(stmt, 7));
+            item.setPrepTime(sqlite3_column_int(stmt, 8));
+            item.setWeight(sqlite3_column_double(stmt, 9));
+            item.setVolume(sqlite3_column_double(stmt, 10));
         }
     }
 
