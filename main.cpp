@@ -87,6 +87,7 @@ void managerUpdateOrderStatusMenu(OrderDAO& orderDAO, Restaurant& myRestaurant);
 void customerPanel(User* currentUser);
 double calculateCartTotal(vector<OrderItem>& cart);
 int calculateCartPreviewPoints(vector<OrderItem>& cart, Customer* customer);
+void initializeUserCoupons();
 
 int main() {
     DatabaseManager* db = DatabaseManager::getInstance();
@@ -99,6 +100,7 @@ int main() {
     RestaurantDAO restaurantDAO;
 
     seedTestData(userDAO, restaurantDAO);
+    initializeUserCoupons();
 
     int choice;
     do {
@@ -1347,6 +1349,8 @@ void customerPanel(User* currentUser) {
         cout << "\n===== Membership Status =====\n";
         cout << " Level: " << customerInfo->getLevelName() << endl;
         cout << " Points: " << customerInfo->getPoints() << endl;
+        int activeCoupons = couponDAO.getUnusedCouponsCountByUserId(currentUser->getId());
+        cout << " Active Coupons: " << activeCoupons << endl;
 
         int nextPoints = 0;
         if (customerInfo->getLevelName() == "Normal") {
@@ -1793,15 +1797,15 @@ void customerPanel(User* currentUser) {
 
                 coupon = couponDAO.getUnusedCouponByUserId(currentUser->getId());
                 if (coupon.getId() != 0) {
-                    hasCoupon = true;
-                    couponCode = coupon.getCode();
-                    couponPercent = coupon.getDiscountPercent();
-                }
-
-                if (hasCoupon) {
-                    couponDiscountAmount =
-                        afterMembershipDiscount *
-                        (couponPercent / 100.0);
+                    cout << "\n You have an active coupon (" << coupon.getDiscountPercent() << "% OFF).";
+                    int useChoice = readZeroOne(" Use it for this order? (1 = Yes, 0 = No): ");
+                    
+                    if (useChoice == 1) {
+                        hasCoupon = true;
+                        couponCode = coupon.getCode();
+                        couponPercent = coupon.getDiscountPercent();
+                        couponDiscountAmount = afterMembershipDiscount * (couponPercent / 100.0);
+                    }
                 }
 
                 double afterCouponDiscount =
@@ -2027,4 +2031,56 @@ int calculateCartPreviewPoints(vector<OrderItem>& cart, Customer* customer) {
     }
 
     return previewPoints;
+}
+
+void initializeUserCoupons() {
+    UserDAO userDAO;
+    CouponDAO couponDAO;
+    
+    sqlite3* db = DatabaseManager::getInstance()->getDB();
+    const char* sql =
+        "SELECT id, level_current FROM Users WHERE role = 'customer';";
+    sqlite3_stmt* stmt;
+    
+    if (sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) == SQLITE_OK) {
+        while (sqlite3_step(stmt) == SQLITE_ROW) {
+            int userId = sqlite3_column_int(stmt, 0);
+
+            const unsigned char* levelText = sqlite3_column_text(stmt, 1);
+            string level = levelText
+                ? reinterpret_cast<const char*>(levelText)
+                : "";
+
+            int requiredCoupons = 0;
+
+            if (level == "Silver") {
+                requiredCoupons = 1;
+            } else if (level == "Gold") {
+                requiredCoupons = 1;
+            } else if (level == "VIP" || level == "Vip") {
+                requiredCoupons = 3;
+            }
+
+            int activeCoupons =
+                couponDAO.getUnusedCouponsCountByUserId(userId);
+
+            for (int i = activeCoupons; i < requiredCoupons; i++) {
+                Coupon newCoupon;
+                newCoupon.setUserId(userId);
+                newCoupon.setCode(
+                    "DISCOUNT_" + to_string(userId) + "_" +
+                    to_string(i + 1) + "_" +
+                    to_string(rand() % 900 + 100)
+                );
+                newCoupon.setDiscountPercent(20.0);
+                newCoupon.setIssuedAt("2026-07-14 00:00:00");
+                newCoupon.setExpiresAt("2027-12-31 23:59:59");
+                newCoupon.setIsUsed(false);
+                
+                couponDAO.addCoupon(newCoupon);
+            }
+        }
+
+        sqlite3_finalize(stmt);
+    }
 }
