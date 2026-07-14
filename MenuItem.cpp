@@ -18,7 +18,10 @@ MenuItem::MenuItem(int id,
                    double price,
                    int available,
                    std::string description,
-                   int isSpecial) {
+                   int isSpecial,
+                   int prepTime,
+                   double weight,
+                   double volume) {
     this->id = id;
     this->restaurantId = restaurantId;
     this->name = name;
@@ -27,6 +30,9 @@ MenuItem::MenuItem(int id,
     this->available = available;
     this->description = description;
     this->isSpecial = isSpecial;
+    this->prepTime = prepTime;
+    this->weight = weight;
+    this->volume = volume;
 }
 
 void MenuItem::setId(int id) {
@@ -61,6 +67,18 @@ void MenuItem::setIsSpecial(int isSpecial) {
     this->isSpecial = isSpecial;
 }
 
+void MenuItem::setPrepTime(int prepTime) {
+    this->prepTime = prepTime;
+}
+
+void MenuItem::setWeight(double weight) {
+    this->weight = weight;
+}
+
+void MenuItem::setVolume(double volume) {
+    this->volume = volume;
+}
+
 int MenuItem::getId() {
     return id;
 }
@@ -91,4 +109,16 @@ std::string MenuItem::getDescription() {
 
 int MenuItem::getIsSpecial() const {
     return isSpecial;
+}
+
+int MenuItem::getPrepTime() {
+    return prepTime;
+}
+
+double MenuItem::getWeight() {
+    return weight;
+}
+
+double MenuItem::getVolume() {
+    return volume;
 }

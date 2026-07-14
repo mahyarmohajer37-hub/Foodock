@@ -14,7 +14,10 @@ public:
              double price,
              int available,
              std::string description,
-             int isSpecial);
+             int isSpecial,
+			 int prepTime,
+             double weight,
+             double volume);
 
     void setId(int id);
     void setRestaurantId(int restaurantId);
@@ -24,6 +27,9 @@ public:
     void setAvailable(int available);
     void setDescription(std::string description);
     void setIsSpecial(int isSpecial);
+    void setPrepTime(int prepTime);
+    void setWeight(double weight);
+    void setVolume(double volume);
 
     int getId();
     int getRestaurantId();
@@ -33,6 +39,9 @@ public:
     int getAvailable();
     std::string getDescription();
     int getIsSpecial() const;
+    int getPrepTime();
+    double getWeight();
+    double getVolume();
 
 private:
     int id;
@@ -43,6 +52,9 @@ private:
     int available;
     std::string description;
     int isSpecial;
+    int prepTime;
+    double weight;
+    double volume;
 };
 
 #endif
