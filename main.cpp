@@ -6,6 +6,8 @@
 #include <algorithm>
 #include <stdexcept>
 #include <sstream>
+#include <ctime>
+#include <iomanip>
 
 #include "DatabaseManager.h"
 #include "UserDAO.h"
@@ -88,6 +90,7 @@ int calculateCartPreviewPoints(vector<OrderItem>& cart, Customer* customer);
 void initializeUserCoupons();
 bool isNightOrder(Order& order);
 vector<string> getCustomerTitles(vector<Order>& orders);
+string getCurrentDateTime();
 
 int main() {
     DatabaseManager* db = DatabaseManager::getInstance();
@@ -1965,9 +1968,7 @@ void customerPanel(User* currentUser) {
                 break;
             }
 
-            string orderDate =
-                readNonEmptyString(
-                    "Enter order date (e.g. 2026-06-11 18:30): ");
+            string orderDate = getCurrentDateTime();
 
             Order order;
             order.setCustomerId(currentUser->getId());
@@ -2222,4 +2223,13 @@ vector<string> getCustomerTitles(vector<Order>& orders) {
     }
 
     return titles;
+}
+
+string getCurrentDateTime() {
+    time_t now = time(0);
+    tm* ltm = localtime(&now);
+
+    stringstream ss;
+    ss << put_time(ltm, "%Y-%m-%d %H:%M");
+    return ss.str();
 }
