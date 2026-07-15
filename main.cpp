@@ -5,6 +5,7 @@
 #include <map>
 #include <algorithm>
 #include <stdexcept>
+#include <sstream>
 
 #include "DatabaseManager.h"
 #include "UserDAO.h"
@@ -26,12 +27,6 @@
 using namespace std;
 
 void clearInputBuffer();
-
-int readInt();
-
-double readDouble();
-
-string readString(const string& prompt);
 
 void pauseProgram();
 
@@ -141,35 +136,6 @@ void clearInputBuffer() {
     cin.ignore(numeric_limits<streamsize>::max(), '\n');
 }
 
-int readInt() {
-    int value;
-    while (!(cin >> value)) {
-        cout << " Invalid input. Please enter a number: ";
-        cin.clear();
-        cin.ignore(numeric_limits<streamsize>::max(), '\n');
-    }
-    cin.ignore(numeric_limits<streamsize>::max(), '\n');
-    return value;
-}
-
-double readDouble() {
-    double value;
-    while (!(cin >> value)) {
-        cout << " Invalid input. Please enter a number: ";
-        cin.clear();
-        cin.ignore(numeric_limits<streamsize>::max(), '\n');
-    }
-    cin.ignore(numeric_limits<streamsize>::max(), '\n');
-    return value;
-}
-
-string readString(const string& prompt) {
-    cout << prompt;
-    string value;
-    getline(cin, value);
-    return value;
-}
-
 void pauseProgram() {
     cout << "\n Press Enter to continue...";
     cin.get();
@@ -204,40 +170,45 @@ string readOptionalString(const string& prompt) {
     return trim(value);
 }
 
-int readZeroOne(const string& prompt) {
-    int value;
-    while (true) {
-        cout << prompt;
-        value = readInt();
-
-        if (value == 0 || value == 1)
-            return value;
-
-        cout << " Invalid input. Please enter 1 or 0.\n";
-    }
-}
-
 int readPositiveInt(const string& prompt) {
+    string input;
     int value;
+
     while (true) {
         cout << prompt;
-        value = readInt();
+        getline(cin, input);
 
-        if (value >= 0)
+        if (input.empty()) {
+            cout << " Input cannot be empty. Please enter a non-negative number.\n";
+            continue;
+        }
+
+        stringstream ss(input);
+        if (ss >> value && ss.eof() && value >= 0) {
             return value;
+        }
 
         cout << " Invalid input. Please enter a non-negative number.\n";
     }
 }
 
 double readPositiveDouble(const string& prompt) {
+    string input;
     double value;
+
     while (true) {
         cout << prompt;
-        value = readDouble();
+        getline(cin, input);
 
-        if (value >= 0)
+        if (input.empty()) {
+            cout << " Input cannot be empty. Please enter a non-negative number.\n";
+            continue;
+        }
+
+        stringstream ss(input);
+        if (ss >> value && ss.eof() && value >= 0) {
             return value;
+        }
 
         cout << " Invalid input. Please enter a non-negative number.\n";
     }
@@ -358,7 +329,7 @@ void registerManager(UserDAO& userDAO) {
     string restaurantName = readNonEmptyString(" Enter restaurant name: ");
     string address = readNonEmptyString("Enter restaurant address: ");
 
-    int status = readZeroOne(" Enter restaurant status (1=active, 0=inactive): ");
+    int status = readPositiveInt(" Enter restaurant status (1=active, 0=inactive): ");
 
     int prepTime = readPositiveInt(" Enter preparation time: ");
 
@@ -436,8 +407,7 @@ void adminPanel(User* currentUser) {
         cout << "10. View Level Change Logs\n";      
         cout << "11. Reports\n";                   
         cout << "0. Logout\n";
-        cout << " Enter your choice: ";
-        choice = readInt();
+        choice = readPositiveInt(" Enter your choice: ");
 
         switch (choice) {
         case 1:
@@ -534,8 +504,7 @@ void adminDeleteUserMenu(UserDAO& userDAO) {
         cout << "1. Show All Users\n";
         cout << "2. Delete User\n";
         cout << "0. Back\n";
-        cout << " Enter your choice: ";
-        choice = readInt();
+        choice = readPositiveInt(" Enter your choice: ");
 
         switch (choice) {
         case 1:
@@ -569,15 +538,14 @@ void adminAddRestaurantMenu(RestaurantDAO& restaurantDAO) {
         cout << "\n===== Add Restaurant =====\n";
         cout << "1. Add Restaurant\n";
         cout << "0. Back\n";
-        cout << " Enter your choice: ";
-        choice = readInt();
+        choice = readPositiveInt(" Enter your choice: ");
 
         switch (choice) {
         case 1: {
             string name = readNonEmptyString(" Enter restaurant name: ");
             string address = readNonEmptyString(" Enter restaurant address: ");
 
-            int status = readZeroOne(" Enter status (1=active, 0=inactive): ");
+            int status = readPositiveInt(" Enter status (1=active, 0=inactive): ");
 
             int prepTime = readPositiveInt(" Enter prep time: ");
 
@@ -639,7 +607,7 @@ void adminUpdateRestaurantMenu(RestaurantDAO& restaurantDAO) {
             r.setName(readNonEmptyString(" Enter new name: "));
             r.setAddress(readNonEmptyString(" Enter new address: "));
 
-            r.setStatus(readZeroOne(" Enter new status: "));
+            r.setStatus(readPositiveInt(" Enter new status: "));
 
             r.setPrepTime(readPositiveInt(" Enter new prep time: "));
 
@@ -716,8 +684,7 @@ void showReports(UserDAO& userDAO, OrderDAO& orderDAO) {
         cout << "3. Active Users\n";
         cout << "4. User Membership Level Statistics\n";
         cout << "0. Back\n";
-        cout << " Enter your choice: ";
-        choice = readInt();
+        choice = readPositiveInt(" Enter your choice: ");
 
         switch (choice) {
         case 1:
@@ -799,8 +766,7 @@ void showActiveUsersByOrders(UserDAO& userDAO, OrderDAO& orderDAO) {
 
 void adminModifyUserLoyalty(UserDAO& userDAO) {
     cout << "\n===== Modify Customer Loyalty (Admin) =====\n";
-    cout << "Enter Customer User ID: ";
-    int customerId = readInt();
+    int customerId = readPositiveInt("Enter Customer User ID: ");
 
     Customer* customer = userDAO.getCustomerById(customerId);
     if (customer == NULL) {
@@ -813,8 +779,7 @@ void adminModifyUserLoyalty(UserDAO& userDAO) {
     cout << " - Current Points: " << customer->getPoints() << "\n";
     cout << " - Current Level: " << customer->getLevelName() << "\n";
 
-    cout << "\nEnter new loyalty points: ";
-    int newPoints = readInt();
+    int newPoints = readPositiveInt("\nEnter new loyalty points: ");
     if (newPoints < 0) {
         cout << " [Error] Points cannot be negative!\n";
         delete customer;
@@ -856,10 +821,8 @@ void adminModifyUserLoyalty(UserDAO& userDAO) {
 
 void adminApplyInactivityDowngrade(UserDAO& userDAO) {
     cout << "\n===== Apply Inactivity Downgrade =====\n";
-    cout << "Enter days of inactivity threshold (e.g., 30): ";
-    int days = readInt();
-    cout << "Enter loyalty points penalty for inactive users: ";
-    int penalty = readInt();
+    int days = readPositiveInt("Enter days of inactivity threshold (e.g., 30): ");
+    int penalty = readPositiveInt("Enter loyalty points penalty for inactive users: ");
 
     if (days <= 0 || penalty < 0) {
         cout << " [Error] Invalid inputs!\n";
@@ -939,8 +902,7 @@ void managerPanel(User* currentUser) {
         cout << "6. Update Restaurant Info\n";
         cout << "7. Update Order Status\n";
         cout << "0. Logout\n";
-        cout << " Enter your choice: ";
-        choice = readInt();
+        choice = readPositiveInt(" Enter your choice: ");
 
         switch (choice) {
         case 1:
@@ -1051,8 +1013,7 @@ void managerAddMenuItemMenu(MenuItemDAO& menuItemDAO, Restaurant& myRestaurant) 
         cout << "\n===== Add Menu Item =====\n";
         cout << "1. Add Menu Item\n";
         cout << "0. Back\n";
-        cout << " Enter your choice: ";
-        choice = readInt();
+        choice = readPositiveInt(" Enter your choice: ");
 
         switch (choice) {
         case 1: {
@@ -1066,7 +1027,7 @@ void managerAddMenuItemMenu(MenuItemDAO& menuItemDAO, Restaurant& myRestaurant) 
             cout << " 3. Dessert\n";
             cout << " 4. Drink\n";
 
-            int categoryChoice = readCategoryChoice(" Enter your choice (1-4): ");
+            int categoryChoice = readPositiveInt(" Enter your choice (1-4): ");
 
             if (categoryChoice == 1) {
                 item.setCategory("appetizer");
@@ -1094,9 +1055,9 @@ void managerAddMenuItemMenu(MenuItemDAO& menuItemDAO, Restaurant& myRestaurant) 
             }
 
             item.setPrice(readPositiveDouble(" Enter price: "));
-            item.setAvailable(readZeroOne(" Enter available (1/0): "));
+            item.setAvailable(readPositiveInt(" Enter available (1/0): "));
             item.setDescription(readNonEmptyString(" Enter description: "));
-            item.setIsSpecial(readZeroOne(" Enter is special (1/0): "));
+            item.setIsSpecial(readPositiveInt(" Enter is special (1/0): "));
 
             if (menuItemDAO.addMenuItem(item))
                 cout << " Menu item added successfully\n";
@@ -1154,7 +1115,7 @@ void managerUpdateMenuItemMenu(MenuItemDAO& menuItemDAO, Restaurant& myRestauran
             cout << " 3. Dessert\n";
             cout << " 4. Drink\n";
 
-            int categoryChoice = readCategoryChoice(" Enter your choice (1-4): ");
+            int categoryChoice = readPositiveInt(" Enter your choice (1-4): ");
 
             if (categoryChoice == 1) {
                 item.setCategory("appetizer");
@@ -1182,9 +1143,9 @@ void managerUpdateMenuItemMenu(MenuItemDAO& menuItemDAO, Restaurant& myRestauran
             }
 
             item.setPrice(readPositiveDouble(" Enter new price: "));
-            item.setAvailable(readZeroOne(" Enter available (1/0): "));
+            item.setAvailable(readPositiveInt(" Enter available (1/0): "));
             item.setDescription(readNonEmptyString(" Enter new description: "));
-            item.setIsSpecial(readZeroOne(" Enter new is special (1/0): "));
+            item.setIsSpecial(readPositiveInt(" Enter new is special (1/0): "));
 
             if (menuItemDAO.updateMenuItem(item))
                 cout << " Menu item updated successfully\n";
@@ -1205,21 +1166,6 @@ void managerUpdateMenuItemMenu(MenuItemDAO& menuItemDAO, Restaurant& myRestauran
     } while (choice != 0);
 }
 
-
-int readCategoryChoice(const string& prompt) {
-    int value;
-    while (true) {
-        cout << prompt;
-        value = readInt();
-
-        if (value >= 1 && value <= 4)
-            return value;
-
-        cout << " Invalid input. Please enter a number between 1 and 4.\n";
-    }
-}
-
-
 void managerDeleteMenuItemMenu(MenuItemDAO& menuItemDAO, Restaurant& myRestaurant) {
     int choice;
 
@@ -1228,8 +1174,7 @@ void managerDeleteMenuItemMenu(MenuItemDAO& menuItemDAO, Restaurant& myRestauran
         cout << "1. View My Menu Items\n";
         cout << "2. Delete Menu Item\n";
         cout << "0. Back\n";
-        cout << " Enter your choice: ";
-        choice = readInt();
+        choice = readPositiveInt(" Enter your choice: ");
 
         switch (choice) {
         case 1:
@@ -1277,8 +1222,7 @@ void managerUpdateRestaurantInfoMenu(RestaurantDAO& restaurantDAO, Restaurant& m
         cout << "1. Show Current Restaurant Info\n";
         cout << "2. Update Restaurant Info\n";
         cout << "0. Back\n";
-        cout << " Enter your choice: ";
-        choice = readInt();
+        choice = readPositiveInt(" Enter your choice: ");
 
         switch (choice) {
         case 1:
@@ -1824,8 +1768,7 @@ void customerPanel(User* currentUser) {
                         break;
                     }
 
-                    cout << " Enter item ID to decrease/remove: ";
-                    int itemId = readInt();
+                    int itemId = readPositiveInt(" Enter item ID to decrease/remove: ");
 
                     bool found = false;
 
@@ -1835,8 +1778,7 @@ void customerPanel(User* currentUser) {
 
                             cout << " Current quantity: "
                                  << cart[i].getQuantity() << endl;
-                            cout << " Enter quantity to remove: ";
-                            int removeQty = readInt();
+                            int removeQty = readPositiveInt(" Enter quantity to remove: ");
 
                             if (removeQty <= 0) {
                                 cout << " Invalid quantity.\n";
@@ -1946,7 +1888,7 @@ void customerPanel(User* currentUser) {
                 coupon = couponDAO.getUnusedCouponByUserId(currentUser->getId());
                 if (coupon.getId() != 0) {
                     cout << "\n You have an active coupon (" << coupon.getDiscountPercent() << "% OFF).";
-                    int useChoice = readZeroOne(" Use it for this order? (1 = Yes, 0 = No): ");
+                    int useChoice = readPositiveInt(" Use it for this order? (1 = Yes, 0 = No): ");
                     
                     if (useChoice == 1) {
                         hasCoupon = true;
@@ -2013,7 +1955,7 @@ void customerPanel(User* currentUser) {
             }
 
             int confirm =
-                readZeroOne(
+                readPositiveInt(
                     "Finalize this order? (1 = Yes, 0 = No): ");
 
             if (confirm != 1) {
